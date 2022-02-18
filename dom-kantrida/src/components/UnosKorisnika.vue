@@ -8,6 +8,37 @@
           <q-input outlined v-model="korisnik.ime" label="Ime" :dense="dense" />
           <q-input
             outlined
+            v-model="korisnik.prezime"
+            label="Prezime"
+            :dense="dense"
+          />
+          <q-input outlined v-model="korisnik.OIB" label="OIB" :dense="dense" />
+          <q-input
+            outlined
+            v-model="korisnik.email"
+            label="Email"
+            :dense="dense"
+          />
+          <q-input
+            outlined
+            v-model="korisnik.adresa"
+            label="Adresa"
+            :dense="dense"
+          />
+          <q-input
+            outlined
+            v-model="korisnik.brojTelefona"
+            label="Broj telefona"
+            :dense="dense"
+          />
+          <q-input
+            outlined
+            v-model="korisnik.rola"
+            label="Rola"
+            :dense="dense"
+          />
+          <q-input
+            outlined
             v-model="password"
             label="Password"
             :dense="dense"
@@ -32,6 +63,12 @@ export default defineComponent({
       prompt: false,
       korisnik: {
         ime: "",
+        prezime: "",
+        OIB: "",
+        email: "",
+        adresa: "",
+        brojTelefona: "",
+        rola: "",
         password: "",
       },
     };

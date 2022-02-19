@@ -35,27 +35,24 @@
       :loading="loading"
       no-data-label="Nema dostava za izabrani datum"
     >
-      <!-- <template v-slot:top>
-        <div class="table-header">
-          <h5>Dostave</h5>
-          <UnosDostave />
-        </div>
-      </template> -->
     </q-table>
   </div>
 </template>
 <script>
 import { defineComponent } from "vue";
-import "../css/app.css";
 import { db } from "src/boot/firebase";
 import { collection, query, getDocs, where } from "firebase/firestore";
 import UnosDostave from "../components/UnosDostave.vue";
-import { formatDate, formatDateDisplay } from "../utils/formatDate";
+import {
+  formatDate,
+  formatDateDisplay,
+  getDateAndTime,
+  getDate,
+} from "../utils/formatDate";
 
 const columns = [
   {
     name: "id",
-    required: true,
     label: "ID",
     align: "left",
     field: "id",
@@ -63,17 +60,44 @@ const columns = [
   },
   {
     name: "datumDostave",
-    required: true,
     label: "Datum",
     align: "left",
     field: "datumDostave",
     sortable: true,
   },
   {
-    name: "broj",
-    align: "center",
-    label: "Prezime",
-    field: "prezime",
+    name: "brojPaketa",
+    align: "left",
+    label: "Broj paketa",
+    field: "brojPaketa",
+    sortable: true,
+  },
+  {
+    name: "klijent",
+    label: "Klijent",
+    align: "left",
+    field: "klijent",
+    sortable: false,
+  },
+  {
+    name: "adresa",
+    label: "Adresa",
+    align: "left",
+    field: "adresa",
+    sortable: false,
+  },
+  {
+    name: "statusDostave",
+    align: "left",
+    label: "Status dostave",
+    field: "statusDostave",
+    sortable: true,
+  },
+  {
+    name: "vrijemeZavrsetkaDostave",
+    align: "left",
+    label: "Vrijeme zavrsetka dostave",
+    field: "vrijemeZavrsetkaDostave",
     sortable: true,
   },
 ];
@@ -89,10 +113,10 @@ export default defineComponent({
       loading: false,
       prikaziDatePicker: false,
       izabraniDatum: formatDate(today),
-      proxyDate: formatDate(today),
     };
   },
   methods: {
+    //query za dostave na odabrani datum
     async getData(datum) {
       const q = query(
         collection(db, "Dostave"),
@@ -102,13 +126,29 @@ export default defineComponent({
       this.loading = true;
       const querySnapshot = await getDocs(q);
       querySnapshot.forEach((doc) => {
-        this.dostave.push({ id: doc.id, ...doc.data() });
-        console.log(doc.data());
+        let data = doc.data();
+        this.dostave.push({
+          id: doc.id,
+          brojPaketa: data.brojPaketa ? data.brojPaketa : "",
+          datumDostave: data.datumDostave
+            ? getDate(data.datumDostave.seconds)
+            : "",
+          statusDostave: data.statusDostave ? data.statusDostave : "",
+          vrijemeZavrsetkaDostave: data.vrijemeZavrsetkaDostave
+            ? getDateAndTime(data.vrijemeZavrsetkaDostave.seconds)
+            : "",
+          adresa: "test",
+          klijent: "ime prezime",
+        });
       });
       this.loading = false;
     },
-    //za prikazivanje datuma u formatu dd.mm.yyyy
+    //za prikazivanje datuma u formatu dd.mm.yyyy iz oblika yyyy/mm/dd
     formatDateDisplay,
+    //za prikaz datuma i vremena u tablici u formatu dd.mm.yyyy hh:mm iz unix timestampa
+    getDateAndTime,
+    //za prikaz datuma u formatu dd.mm.yyyy iz unix timestampa
+    getDate,
     //za prikazivanje pop-up prozora s date pickerom
     prikaziDate() {
       this.prikaziDatePicker = !this.prikaziDatePicker;

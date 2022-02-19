@@ -13,3 +13,12 @@
   justify-content: space-between;
   align-items: center;
 }
+.q-card {
+  width: 350px;
+  margin: auto;
+  margin-top: 20px;
+}
+.slika {
+  width: 120px;
+  height: 120px;
+}

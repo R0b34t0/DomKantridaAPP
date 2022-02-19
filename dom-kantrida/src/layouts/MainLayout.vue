@@ -37,6 +37,14 @@
             <q-side-link item>Klijenti</q-side-link></q-item-section
           >
         </q-item>
+        <q-item clickable v-ripple @click="logout()">
+          <q-item-section avatar>
+            <q-icon name="people" />
+          </q-item-section>
+          <q-item-section>
+            <q-side-link item>Logout</q-side-link></q-item-section
+          >
+        </q-item>
       </q-list>
     </q-drawer>
 
@@ -48,7 +56,8 @@
 
 <script>
 import { ref } from "vue";
-
+import { getAuth, signOut } from "firebase/auth";
+const auth = getAuth();
 
 export default {
   setup() {
@@ -60,6 +69,18 @@ export default {
         leftDrawerOpen.value = !leftDrawerOpen.value;
       },
     };
+  },
+  methods: {
+    logout() {
+      signOut(auth)
+        .then(() => {
+          // Sign-out successful.
+          this.$router.push("/login");
+        })
+        .catch((error) => {
+          // An error happened.
+        });
+    },
   },
 };
 </script>

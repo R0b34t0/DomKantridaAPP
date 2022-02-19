@@ -1,33 +1,35 @@
 <template>
   <div>
-    <q-card>
+    <q-card class="shadow-7">
       <q-card-section class="text-center">
-        <q-avatar class="shadow-7">
-          <img src="~assets\logoDomKantrida2.png" alt="Logo Dom Kantrida" />
-        </q-avatar>
+        <div>
+          <img
+            src="../../public/favicon1.png"
+            alt="Logo Dom Kantrida"
+            class="slika"
+          />
+        </div>
       </q-card-section>
       <q-card-section>
         <q-form class="q-gutter-md">
+          <q-input outlined v-model="email" type="email" label="Email" />
           <q-input
-            square
-            filled
-            clearable
-            v-model="email"
-            type="email"
-            label="email"
-          />
-          <q-input
-            square
-            filled
-            clearable
+            outlined
             v-model="password"
-            type="password"
-            label="password"
-          />
+            :type="isPwd ? 'password' : 'text'"
+            label="Lozinka"
+            ><template v-slot:append>
+              <q-icon
+                :name="isPwd ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer"
+                @click="isPwd = !isPwd"
+              />
+            </template>
+          </q-input>
         </q-form>
       </q-card-section>
       <q-card-section>
-      <div v-if="error !== null">{{ error }}</div>
+        <div v-if="error !== null">{{ error }}</div>
       </q-card-section>
       <q-card-actions class="q-px-md" @click="login()">
         <q-btn
@@ -44,7 +46,6 @@
         </p>
       </q-card-section>
     </q-card>
-    
   </div>
 </template>
 
@@ -61,6 +62,7 @@ export default {
       email: null,
       password: null,
       error: null,
+      isPwd: true,
     };
   },
 
@@ -74,22 +76,9 @@ export default {
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
-          this.error = "test";
+          this.error = "Nešto je pošlo po zlu!";
         });
     },
   },
 };
 </script>
-
-<style>
-.q-card {
-  width: 350px;
-  margin: auto;
-  margin-top: 20px;
-  border: 1px solid red;
-}
-.q-avatar {
-  width: 120px;
-  height: 120px;
-}
-</style>

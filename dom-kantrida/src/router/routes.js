@@ -1,10 +1,24 @@
-const routes = [
-  {
+const routes = [{
     path: "/",
     component: () => import("layouts/MainLayout.vue"),
-    children: [
-      { path: "", component: () => import("pages/Index.vue") },
-      { path: "dostave", component: () => import("pages/Dostave.vue"),meta:{ requiresAuth: true } },
+    children: [{
+        path: "",
+        component: () => import("pages/Index.vue")
+      },
+      {
+        path: "dostave",
+        component: () => import("pages/Dostave.vue"),
+        meta: {
+          requiresAuth: true
+        }
+      },
+      {
+        path: "klijenti",
+        component: () => import("pages/Klijenti.vue"),
+        meta: {
+          requiresAuth: false // stavi na true
+        }
+      },
     ],
   },
 
@@ -13,9 +27,9 @@ const routes = [
     component: () => import("pages/LoginPage.vue"),
   },
 
-  
 
-  
+
+
   // Always leave this as last one,
   // but you can also remove it
   {

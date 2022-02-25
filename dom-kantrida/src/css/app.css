@@ -2,9 +2,19 @@
 .hidden {
   display: none;
 }
-.flex {
+.flex-start {
   display: flex;
   justify-content: flex-start;
+  align-items: center;
+}
+.flex-end {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.flex-center {
+  display: flex;
+  justify-content: center;
   align-items: center;
 }
 .table-header {
@@ -21,4 +31,14 @@
 .slika {
   width: 120px;
   height: 120px;
+}
+.loading {
+  position: absolute;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 400px;
+  height: 200px;
 }

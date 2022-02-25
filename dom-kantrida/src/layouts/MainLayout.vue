@@ -37,7 +37,7 @@
             <q-side-link item>Klijenti</q-side-link></q-item-section
           >
         </q-item>
-        <q-item clickable v-ripple @click="logout()">
+        <q-item v-if="state.user" clickable v-ripple @click="logout()">
           <q-item-section avatar>
             <q-icon name="people" />
           </q-item-section>
@@ -55,32 +55,42 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, onMounted, reactive } from "vue";
+import { useRouter } from "vue-router";
 import { getAuth, signOut } from "firebase/auth";
 const auth = getAuth();
 
 export default {
   setup() {
+    const state = reactive({
+      user: null,
+    });
+    const router = useRouter();
     const leftDrawerOpen = ref(true);
+
+    const logout = () => {
+      signOut(auth)
+        .then(() => {
+          // Sign-out successful.
+          router.push("/login");
+        })
+        .catch((error) => {
+          console.log(error); // An error happened.
+        });
+    };
+
+    onMounted(() => {
+      state.user = auth.currentUser;
+    });
 
     return {
       leftDrawerOpen,
       toggleLeftDrawer() {
         leftDrawerOpen.value = !leftDrawerOpen.value;
       },
+      logout,
+      state,
     };
-  },
-  methods: {
-    logout() {
-      signOut(auth)
-        .then(() => {
-          // Sign-out successful.
-          this.$router.push("/login");
-        })
-        .catch((error) => {
-          // An error happened.
-        });
-    },
   },
 };
 </script>

@@ -10,6 +10,18 @@
           </q-avatar>
           Dom Kantrida
         </q-toolbar-title>
+        <div v-if="state.user">
+          {{ state.user.email }}
+          <q-avatar
+            v-if="state.collectionUser"
+            color="secondary"
+            text-color="white"
+            >{{
+              state.collectionUser.ime.charAt(0) +
+              state.collectionUser.prezime.charAt(0)
+            }}</q-avatar
+          >
+        </div>
       </q-toolbar>
     </q-header>
 
@@ -39,10 +51,10 @@
         </q-item>
         <q-item v-if="state.user" clickable v-ripple @click="logout()">
           <q-item-section avatar>
-            <q-icon name="people" />
+            <q-icon name="logout" />
           </q-item-section>
           <q-item-section>
-            <q-side-link item>Logout</q-side-link></q-item-section
+            <q-side-link item>Odjava</q-side-link></q-item-section
           >
         </q-item>
       </q-list>
@@ -57,13 +69,15 @@
 <script>
 import { ref, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { getAuth, signOut } from "firebase/auth";
-const auth = getAuth();
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "../boot/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export default {
   setup() {
     const state = reactive({
       user: null,
+      collectionUser: null,
     });
     const router = useRouter();
     const leftDrawerOpen = ref(true);
@@ -71,16 +85,37 @@ export default {
     const logout = () => {
       signOut(auth)
         .then(() => {
-          // Sign-out successful.
           router.push("/login");
         })
         .catch((error) => {
-          console.log(error); // An error happened.
+          console.log(error);
         });
     };
 
+    const getUserData = async (uid) => {
+      const docRef = doc(db, "Korisnici", uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        state.collectionUser = docSnap.data();
+      } else {
+        alert("Korisnik nije pronadjen! Molimo da se ponovno prijavite!");
+        router.push("/login");
+      }
+    };
+    //we can use this data to later hide routes for admin/vozac
+    const checkAuthState = async () => {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          state.user = user;
+          getUserData(user.uid);
+        } else {
+          router.push("/login");
+        }
+      });
+    };
+
     onMounted(() => {
-      state.user = auth.currentUser;
+      checkAuthState();
     });
 
     return {

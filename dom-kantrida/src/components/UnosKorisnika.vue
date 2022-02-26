@@ -107,52 +107,16 @@
         <q-spinner color="primary" size="3em" />
       </div>
     </q-dialog>
-    <q-dialog v-model="state.confirmPasswordPrompt" persistent wid>
-      <q-card style="min-width: 300px">
-        <q-card-section class="q-pt-none">
-          <h6 style="margin: 20px 0px 20px 0px">Potvrdi lozinku</h6>
-          <p>
-            Kako bi mogli dodati novog korisnika, potrebno je potvrditi lozinku!
-          </p>
-          <q-input
-            class="input-field"
-            outlined
-            v-model="state.currentUserPassword"
-            label="Lozinka"
-            type="password"
-          />
-        </q-card-section>
-        <q-card-actions align="right" class="text-primary">
-          <q-btn
-            label="Odustani"
-            flat
-            @click="
-              () => {
-                state.confirmPasswordPrompt = false;
-                state.prompt = false;
-              }
-            "
-          />
-          <q-btn
-            color="primary"
-            label="Potvrdi lozinku"
-            @click="confirmCurrentUserPassword"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </div>
 </template>
 <script>
 import { reactive } from "vue";
+import { initializeApp, deleteApp } from "firebase/app";
 import useVuelidate from "@vuelidate/core";
 import {
-  getAuth,
   createUserWithEmailAndPassword,
   signOut,
-  reauthenticateWithCredential,
-  signInWithEmailAndPassword,
-  EmailAuthProvider,
+  getAuth,
 } from "firebase/auth";
 
 import {
@@ -165,7 +129,8 @@ import {
 } from "@vuelidate/validators";
 
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "src/boot/firebase";
+import { db, auth, firebaseConfig } from "src/boot/firebase";
+import { phoneRegex } from "../utils/regex";
 
 export default {
   name: "UnosKorisnika",
@@ -178,18 +143,13 @@ export default {
       email: "",
       adresa: "",
       brojTelefona: "",
-      rola: "",
+      rola: "VOZAC",
       password: "",
-      currentUser: "",
-      confirmPasswordPrompt: false,
-      currentUserEmail: "",
-      currentUserPassword: "",
-      loading: "false",
+      loading: false,
+      uid: null,
     });
     const selectOptions = ["ADMIN", "VOZAC"];
-    const phoneRegex = helpers.regex(
-      /^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}$/
-    );
+    const phoneRegexRule = helpers.regex(phoneRegex);
     const rules = {
       ime: { required: helpers.withMessage("Ime je obavezno polje", required) },
       prezime: {
@@ -227,7 +187,7 @@ export default {
         ),
         phoneRegex: helpers.withMessage(
           "Broj telefona mora biti u obliku 051 123 456",
-          phoneRegex
+          phoneRegexRule
         ),
       },
       rola: {
@@ -245,54 +205,39 @@ export default {
     const handleClick = () => {
       state.prompt = true;
     };
-    const auth = getAuth();
-    state.currentUser = auth.currentUser;
-
-    if (auth.currentUser) {
-      state.currentUserEmail = auth.currentUser.email;
-    }
 
     const onSubmit = async (v$) => {
-      // if form passes validation, open modal to confirm password
+      // if form passes validation, call registerNewUser
       const formIsValid = await v$.$validate();
       if (formIsValid) {
-        state.confirmPasswordPrompt = true;
+        registerNewUser(state.email, state.password);
       }
     };
-    // confirms current logged in user and current password is saved in state
-    const confirmCurrentUserPassword = async () => {
-      const credential = EmailAuthProvider.credential(
-        state.currentUserEmail,
-        state.currentUserPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential)
-        .then(() => {
-          state.confirmPasswordPrompt = false;
-          console.log("user reauthenticated");
-          registerNewUser();
-        })
-        .catch((error) => {
-          alert("Pogrešna lozinka");
-        });
-    };
-    // after current user is reauthenticated (after password is confirmed) we can register new user
-    const registerNewUser = async () => {
+    // initialize and delete app for creating users
+    const registerNewUser = async (email, password) => {
+      let secondaryApp = initializeApp(firebaseConfig, "secondary");
+      let secondaryAuth = getAuth(secondaryApp);
       state.loading = true;
-      await createUserWithEmailAndPassword(auth, state.email, state.password)
+
+      await createUserWithEmailAndPassword(secondaryAuth, email, password)
         .then((userCredential) => {
-          // Signed in
           const user = userCredential.user;
-          console.log(user.uid);
-          // after new user is created and for no reason signed in by default (da fak u doin firebase) we can add user to the collection
-          addUserToCollection(user.uid);
+          state.uid = user.uid;
+          signOut(secondaryAuth).then(() => {
+            console.log("signed out new user on secondary");
+            deleteApp(secondaryApp).then(() => {
+              console.log("secondary app deleted");
+              addUserToCollection();
+            });
+          });
         })
         .catch((error) => {
           console.log(error.message);
         });
     };
-    // add new user to Korisnici collection with same uid from firebase users and call sign out function for new user
-    const addUserToCollection = async (uid) => {
-      await setDoc(doc(db, "Korisnici", uid), {
+    // add new user to Korisnici collection with same uid from firebase users
+    const addUserToCollection = async () => {
+      await setDoc(doc(db, "Korisnici", state.uid), {
         ime: state.ime,
         prezime: state.prezime,
         OIB: state.OIB,
@@ -302,37 +247,8 @@ export default {
         rola: state.rola,
       });
       console.log("user added to collection");
-      signOutNewUser();
-    };
-    // sign out newly created user and call function to log in current user
-    const signOutNewUser = () => {
-      signOut(auth)
-        .then(() => {
-          console.log("signed out");
-          signCurrentUserBackIn();
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    };
-    // after new user is signed out, we can sign back in current user haha
-    const signCurrentUserBackIn = () => {
-      signInWithEmailAndPassword(
-        auth,
-        state.currentUserEmail,
-        state.currentUserPassword
-      )
-        .then((userCredential) => {
-          // Signed in
-          const user = userCredential.user;
-          console.log("yooo i'm back");
-          state.prompt = false;
-          state.loading = false;
-          // ...
-        })
-        .catch((error) => {
-          console.log(error.message);
-        });
+      state.prompt = false;
+      state.loading = false;
     };
 
     return {
@@ -340,7 +256,6 @@ export default {
       v$,
       handleClick,
       onSubmit,
-      confirmCurrentUserPassword,
       selectOptions,
     };
   },

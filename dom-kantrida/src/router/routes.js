@@ -4,7 +4,12 @@ const routes = [
     component: () => import("layouts/MainLayout.vue"),
     children: [
       { path: "", component: () => import("pages/Index.vue") },
-      { path: "dostave", component: () => import("pages/Dostave.vue") },
+      { path: "Korisnici", component: () => import("pages/Korisnici.vue") },
+      {
+        path: "dostave",
+        component: () => import("pages/Dostave.vue"),
+        // meta: { requiresAuth: true },
+      },
     ],
   },
 

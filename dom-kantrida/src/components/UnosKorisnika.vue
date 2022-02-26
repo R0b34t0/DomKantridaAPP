@@ -1,6 +1,6 @@
 <template>
   <div>
-    <q-btn color="primary" label="Dodaj" @click="handleClick" />
+    <q-btn color="primary" label="Dodaj" icon="add" @click="handleClick" />
     <q-dialog v-model="state.prompt" persistent wid>
       <q-card style="min-width: 500px">
         <q-form style="width: 100%" @submit.stop="onSubmit(v$)">
@@ -65,6 +65,7 @@
               outlined
               v-model="state.brojTelefona"
               label="Broj telefona"
+              mask="phone"
               :error="v$.brojTelefona.$dirty && state.brojTelefona"
             />
             <div class="error" v-if="v$.brojTelefona.$error">
@@ -185,10 +186,10 @@ export default {
           "Broj telefona je obavezno polje",
           required
         ),
-        phoneRegex: helpers.withMessage(
-          "Broj telefona mora biti u obliku 051 123 456",
-          phoneRegexRule
-        ),
+        // phoneRegex: helpers.withMessage(
+        //   "Broj telefona mora biti u obliku 051 123 456",
+        //   phoneRegexRule
+        // ),
       },
       rola: {
         required: helpers.withMessage(
@@ -249,6 +250,17 @@ export default {
       console.log("user added to collection");
       state.prompt = false;
       state.loading = false;
+      state = {
+        ...state,
+        ime: "",
+        prezime: "",
+        OIB: "",
+        email: "",
+        adresa: "",
+        brojTelefona: "",
+        rola: "VOZAC",
+        password: "",
+      };
     };
 
     return {
@@ -261,13 +273,3 @@ export default {
   },
 };
 </script>
-<style>
-.input-field {
-  padding-bottom: 10px;
-}
-.error {
-  color: red;
-  font-size: 12px;
-  margin: -10px 0px 10px 10px;
-}
-</style>

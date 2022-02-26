@@ -1,11 +1,21 @@
 <template>
   <div class="q-pa-md">
     <div class="row">
-      <h4 class="col-11">Korisnici</h4>
-      <UnosKorisnika class="flex-end col-1" />
+      <h4 class="col-10">Korisnici</h4>
+      <UnosKorisnika class="flex-end col-2" />
     </div>
 
-    <q-table :rows="state.korisnici" :columns="columns" row-key="id" />
+    <q-table
+      :table-header-style="{ backgroundColor: '#1976D2', color: 'white' }"
+      :rows="state.korisnici"
+      :columns="columns"
+      :pagination="pagination"
+      :loading="state.loading"
+      no-data-label="Nema dostava za izabrani datum"
+      loading-label="Podaci se učitavaju... "
+      row-key="id"
+      color="white"
+    />
   </div>
 </template>
 <script>
@@ -20,10 +30,12 @@ export default defineComponent({
   setup() {
     const state = reactive({
       korisnici: [],
+      loading: false,
     });
     let unsub;
 
     const getData = async () => {
+      state.loading = true;
       const q = query(collection(db, "Korisnici"));
       unsub = onSnapshot(q, (querySnapshot) => {
         state.korisnici = [];
@@ -39,6 +51,7 @@ export default defineComponent({
             email: data.email ? data.email : " ",
             rola: data.rola ? data.rola : " ",
           });
+          state.loading = false;
         });
       });
     };
@@ -53,17 +66,16 @@ export default defineComponent({
     const columns = [
       {
         name: "id",
-        required: true,
         label: "ID",
-        align: "left",
+        align: "center",
         field: "id",
         sortable: false,
+        style: "max-width: 150px",
       },
       {
         name: "ime",
-        required: true,
         label: "Ime",
-        align: "left",
+        align: "center",
         field: "ime",
         sortable: true,
       },
@@ -76,7 +88,6 @@ export default defineComponent({
       },
       {
         name: "OIB",
-        required: true,
         align: "center",
         label: "OIB",
         field: "OIB",
@@ -85,21 +96,21 @@ export default defineComponent({
       {
         name: "adresa",
         align: "center",
-        label: "adresa",
+        label: "Adresa",
         field: "adresa",
         sortable: true,
       },
       {
         name: "brojTelefona",
         align: "center",
-        label: "brojTelefona",
+        label: "Broj telefona",
         field: "brojTelefona",
         sortable: true,
       },
       {
         name: "email",
         align: "center",
-        label: "email",
+        label: "Email",
         field: "email",
         sortable: true,
       },

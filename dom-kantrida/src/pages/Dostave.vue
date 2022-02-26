@@ -2,7 +2,7 @@
   <div class="q-pa-md">
     <div class="row">
       <h4 class="col-3">Dostave</h4>
-      <div class="flex-start col-8">
+      <div class="flex-start col-7">
         <h4>{{ this.formatDateDisplay(izabraniDatum) }}</h4>
         <q-icon
           name="calendar_month"
@@ -25,10 +25,11 @@
           </q-popup-proxy>
         </q-icon>
       </div>
-      <UnosDostave class="flex-end col-1" />
+      <UnosDostave class="flex-end col-2" />
     </div>
 
     <q-table
+      :table-header-style="{ backgroundColor: '#1976D2', color: 'white' }"
       :rows="dostave"
       :columns="columns"
       row-key="id"

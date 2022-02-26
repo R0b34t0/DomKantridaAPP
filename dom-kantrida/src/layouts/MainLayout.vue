@@ -27,6 +27,12 @@
 
     <q-drawer show-if-above v-model="leftDrawerOpen" side="left" bordered>
       <q-list padding class="menu-list">
+        <q-item clickable v-ripple to="/">
+          <q-item-section avatar>
+            <q-icon name="dashboard" />
+          </q-item-section>
+          <q-item-section> Nadzorna ploča </q-item-section>
+        </q-item>
         <q-item clickable v-ripple to="/korisnici">
           <q-item-section avatar>
             <q-icon name="manage_accounts" />

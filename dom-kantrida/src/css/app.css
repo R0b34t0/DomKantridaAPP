@@ -60,3 +60,11 @@
   font-size: 12px;
   margin: -10px 0px 10px 10px;
 }
+.green-bg {
+  background-color: #1db31d;
+  padding: 5px;
+}
+.red-bg {
+  background-color: red;
+  padding: 5px;
+}

@@ -3,7 +3,7 @@
     <div class="row">
       <h4 class="col-3">Dostave</h4>
       <div class="flex-start col-7">
-        <h4>{{ this.formatDateDisplay(izabraniDatum) }}</h4>
+        <h4>{{ formatDateForDisplay(state.izabraniDatum) }}</h4>
         <q-icon
           name="calendar_month"
           size="4em"
@@ -11,7 +11,7 @@
           style="color: #1976d2"
         >
           <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-            <q-date v-model="izabraniDatum" minimal @change="getData()"
+            <q-date v-model="state.izabraniDatum" minimal @change="getData()"
               ><div class="row items-center justify-end q-gutter-sm">
                 <q-btn label="Cancel" color="primary" flat v-close-popup />
                 <q-btn
@@ -30,17 +30,32 @@
 
     <q-table
       :table-header-style="{ backgroundColor: '#1976D2', color: 'white' }"
-      :rows="dostave"
+      :rows="state.dostave"
       :columns="columns"
       row-key="id"
       :loading="loading"
       no-data-label="Nema dostava za izabrani datum"
     >
+      <template v-slot:body-cell-statusDostave="statusDostave">
+        <q-td :props="statusDostave">
+          <div>
+            <q-badge
+              :class="
+                statusDostave.value == 'DOSTAVLJENO' ? 'green-bg' : 'red-bg'
+              "
+              :label="statusDostave.value"
+            />
+          </div>
+          <div class="my-table-details">
+            {{ statusDostave.row.details }}
+          </div>
+        </q-td>
+      </template>
     </q-table>
   </div>
 </template>
 <script>
-import { defineComponent } from "vue";
+import { onMounted, reactive } from "vue";
 import { db } from "src/boot/firebase";
 import { collection, query, getDocs, where } from "firebase/firestore";
 import UnosDostave from "../components/UnosDostave.vue";
@@ -51,84 +66,30 @@ import {
   getDate,
 } from "../utils/formatDate";
 
-const columns = [
-  {
-    name: "id",
-    label: "ID",
-    align: "left",
-    field: "id",
-    sortable: false,
-  },
-  {
-    name: "datumDostave",
-    label: "Datum",
-    align: "left",
-    field: "datumDostave",
-    sortable: true,
-  },
-  {
-    name: "brojPaketa",
-    align: "left",
-    label: "Broj paketa",
-    field: "brojPaketa",
-    sortable: true,
-  },
-  {
-    name: "klijent",
-    label: "Klijent",
-    align: "left",
-    field: "klijent",
-    sortable: false,
-  },
-  {
-    name: "adresa",
-    label: "Adresa",
-    align: "left",
-    field: "adresa",
-    sortable: false,
-  },
-  {
-    name: "statusDostave",
-    align: "left",
-    label: "Status dostave",
-    field: "statusDostave",
-    sortable: true,
-  },
-  {
-    name: "vrijemeZavrsetkaDostave",
-    align: "left",
-    label: "Vrijeme zavrsetka dostave",
-    field: "vrijemeZavrsetkaDostave",
-    sortable: true,
-  },
-];
-
-const today = new Date();
-export default defineComponent({
+export default {
   components: { UnosDostave },
   name: "Dostave",
-  data() {
-    return {
+  setup() {
+    const today = new Date();
+    const state = reactive({
       dostave: [],
-      columns,
       loading: false,
       prikaziDatePicker: false,
       izabraniDatum: formatDate(today),
-    };
-  },
-  methods: {
+    });
+    //
     //query za dostave na odabrani datum
-    async getData(datum) {
+    const getData = async (datum) => {
       const q = query(
         collection(db, "Dostave"),
-        where("datumDostave", ">=", new Date(this.izabraniDatum)),
-        where("datumDostave", "<", this.dodajDanZaFilter(datum))
+        where("datumDostave", ">=", new Date(state.izabraniDatum)),
+        where("datumDostave", "<", dodajDanZaFilter(datum))
       );
-      this.loading = true;
+      state.loading = true;
       const querySnapshot = await getDocs(q);
       querySnapshot.forEach((doc) => {
         let data = doc.data();
-        this.dostave.push({
+        state.dostave.push({
           id: doc.id,
           brojPaketa: data.brojPaketa ? data.brojPaketa : "",
           datumDostave: data.datumDostave
@@ -137,37 +98,95 @@ export default defineComponent({
           statusDostave: data.statusDostave ? data.statusDostave : "",
           vrijemeZavrsetkaDostave: data.vrijemeZavrsetkaDostave
             ? getDateAndTime(data.vrijemeZavrsetkaDostave.seconds)
-            : "",
+            : "/",
           adresa: "test",
           klijent: "ime prezime",
         });
       });
-      this.loading = false;
-    },
-    //za prikazivanje datuma u formatu dd.mm.yyyy iz oblika yyyy/mm/dd
-    formatDateDisplay,
-    //za prikaz datuma i vremena u tablici u formatu dd.mm.yyyy hh:mm iz unix timestampa
-    getDateAndTime,
-    //za prikaz datuma u formatu dd.mm.yyyy iz unix timestampa
-    getDate,
+      state.loading = false;
+    };
+    const formatDateForDisplay = (date) => {
+      return formatDateDisplay(date);
+    };
     //za prikazivanje pop-up prozora s date pickerom
-    prikaziDate() {
-      this.prikaziDatePicker = !this.prikaziDatePicker;
-    },
+    const prikaziDate = () => {
+      state.prikaziDatePicker = !state.prikaziDatePicker;
+    };
     //za firebase where filter - jer su zbog vremena potrebna 2 datuma npr. 19.02.2022 00:00 - 20.2.2022 00:00 za sve dostave na 19.2.2022.
-    dodajDanZaFilter(date) {
+    const dodajDanZaFilter = (date) => {
       var noviDatum = new Date(date);
       noviDatum.setDate(noviDatum.getDate() + 1);
       return noviDatum;
-    },
+    };
     //kod promjene datuma ponovi query
-    onDateChange() {
-      this.dostave = [];
-      this.getData(this.izabraniDatum);
-    },
+    const onDateChange = () => {
+      state.dostave = [];
+      getData(state.izabraniDatum);
+    };
+    //
+    onMounted(() => {
+      getData(state.izabraniDatum);
+    });
+    // stupci
+    const columns = [
+      {
+        name: "id",
+        label: "ID",
+        align: "center",
+        field: "id",
+        sortable: false,
+      },
+      {
+        name: "datumDostave",
+        label: "Datum",
+        align: "center",
+        field: "datumDostave",
+        sortable: true,
+      },
+      {
+        name: "brojPaketa",
+        align: "center",
+        label: "Broj paketa",
+        field: "brojPaketa",
+        sortable: true,
+      },
+      {
+        name: "klijent",
+        label: "Klijent",
+        align: "center",
+        field: "klijent",
+        sortable: false,
+      },
+      {
+        name: "adresa",
+        label: "Adresa",
+        align: "center",
+        field: "adresa",
+        sortable: false,
+      },
+      {
+        name: "statusDostave",
+        align: "center",
+        label: "Status dostave",
+        field: "statusDostave",
+        sortable: true,
+      },
+      {
+        name: "vrijemeZavrsetkaDostave",
+        align: "center",
+        label: "Vrijeme zavrsetka dostave",
+        field: "vrijemeZavrsetkaDostave",
+        sortable: true,
+      },
+    ];
+    return {
+      state,
+      columns,
+      prikaziDate,
+      formatDateForDisplay,
+      onDateChange,
+      getData,
+    };
   },
-  mounted() {
-    this.getData(this.izabraniDatum);
-  },
-});
+};
 </script>

@@ -60,6 +60,7 @@
     </q-card-section>
     <q-card-actions align="right" class="text-primary">
       <q-btn flat label="Odustani" v-close-popup />
+      <!-- @click="dodajUgovor()" -->
       <q-btn
         @click="dodajUgovor()"
         color="primary"
@@ -111,6 +112,13 @@ export default {
     };
   },
   methods: {
+    pretvoriDatum(stariDatum) {
+      let myDate = stariDatum;
+      myDate = myDate.split("-");
+      console.log(myDate[0], myDate[1] - 1, myDate[2]);
+      return new Date(myDate[0], myDate[1] - 1, myDate[2]);
+      // return newDate.getTime();
+    },
     provjeriDatumUkljucivanja() {
       // uzimanje trenutnog datuma i pretvaranje u istu vrijednost koju dobivamo iz inputa
       let date = new Date();
@@ -182,8 +190,8 @@ export default {
       const docRef = await addDoc(collection(db, "Ugovori"), {
         vrstaPrehrane: this.vrstaPrehrane,
         zaduzeniRuckovi: this.zaduzeniRuckovi,
-        datumUkljucivanja: this.datumUkljucivanja,
-        datumZavrsetkaTretmana: this.datumZavrsetkaTretmana,
+        datumUkljucivanja: this.pretvoriDatum(this.datumUkljucivanja),
+        datumZavrsetkaTretmana: this.pretvoriDatum(this.datumZavrsetkaTretmana),
         korisnik: this.model[2],
       });
       this.vrstaPrehrane = "";

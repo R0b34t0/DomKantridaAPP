@@ -6,18 +6,13 @@ const routes = [{
         component: () => import("pages/Index.vue")
       },
       {
-        path: "dostave",
-        component: () => import("pages/Dostave.vue"),
-        meta: {
-          requiresAuth: true
-        }
+        path: "Korisnici",
+        component: () => import("pages/Korisnici.vue")
       },
       {
-        path: "klijenti",
-        component: () => import("pages/Klijenti.vue"),
-        meta: {
-          requiresAuth: false // stavi na true
-        }
+        path: "dostave",
+        component: () => import("pages/Dostave.vue"),
+        // meta: { requiresAuth: true },
       },
     ],
   },
@@ -26,9 +21,6 @@ const routes = [{
     path: "/login",
     component: () => import("pages/LoginPage.vue"),
   },
-
-
-
 
   // Always leave this as last one,
   // but you can also remove it

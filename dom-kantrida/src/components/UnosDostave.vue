@@ -1,6 +1,6 @@
 <template>
   <div>
-    <q-btn color="primary" label="Dodaj" @click="handleClick" />
+    <q-btn color="primary" label="Dodaj" icon="add" @click="handleClick" />
     <q-dialog v-model="prompt" persistent wid>
       <q-card style="min-width: 500px">
         <q-card-section class="q-pt-none">

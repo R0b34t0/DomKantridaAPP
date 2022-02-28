@@ -9,20 +9,16 @@ import {
 } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: process.env.API_KEY,
-  authDomain: process.env.AUTH_DOMAIN,
-  projectId: process.env.PROJECT_ID,
-  storageBucket: process.env.STORAGE_BUCKET,
-  messagingSenderId: process.env.SENDER_ID,
-  appId: process.env.APP_ID,
+  // API KEY
 };
 
 let firebaseApp = initializeApp(firebaseConfig);
 let db = getFirestore(firebaseApp);
-let auth = getAuth();
+let auth = getAuth(firebaseApp);
 
 export {
   firebaseApp,
   db,
-  auth
+  auth,
+  firebaseConfig
 };

@@ -41,6 +41,7 @@
       no-data-label="Nema dostava za izabrani datum"
       loading-label="Podaci se učitavaju... "
       color="orange"
+      :pagination="pagination"
     >
       <template v-slot:body-cell-statusDostave="statusDostave">
         <q-td :props="statusDostave">
@@ -277,6 +278,7 @@ export default {
         sortable: true,
       },
     ];
+
     const getStyleForStatus = (status) => {
       if (status === "DOSTAVLJENO") {
         return "green-bg";
@@ -286,9 +288,13 @@ export default {
         return "orange-bg";
       }
     };
+    const pagination = {
+      rowsPerPage: 10,
+    };
     return {
       state,
       columns,
+      pagination,
       prikaziDate,
       formatDateForDisplay,
       onDateChange,

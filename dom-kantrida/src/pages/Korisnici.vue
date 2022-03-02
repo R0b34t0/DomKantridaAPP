@@ -11,10 +11,10 @@
       :columns="columns"
       :pagination="pagination"
       :loading="state.loading"
-      no-data-label="Nema dostava za izabrani datum"
+      no-data-label="Nema podataka o korisnicima"
       loading-label="Podaci se učitavaju... "
       row-key="id"
-      color="white"
+      color="orange"
     />
   </div>
 </template>
@@ -42,14 +42,14 @@ export default defineComponent({
         querySnapshot.forEach((doc) => {
           let data = doc.data();
           state.korisnici.push({
-            id: doc.id ? doc.id : " ",
-            ime: data.ime ? data.ime : " ",
-            prezime: data.prezime ? data.prezime : " ",
-            OIB: data.OIB ? data.OIB : " ",
-            adresa: data.adresa ? data.adresa : " ",
-            brojTelefona: data.brojTelefona ? data.brojTelefona : " ",
-            email: data.email ? data.email : " ",
-            rola: data.rola ? data.rola : " ",
+            id: doc.id ? doc.id : "",
+            ime: data.ime ? data.ime : "",
+            prezime: data.prezime ? data.prezime : "",
+            OIB: data.OIB ? data.OIB : "",
+            adresa: data.adresa ? data.adresa : "",
+            brojTelefona: data.brojTelefona ? data.brojTelefona : "",
+            email: data.email ? data.email : "",
+            rola: data.rola ? data.rola : "",
           });
           state.loading = false;
         });

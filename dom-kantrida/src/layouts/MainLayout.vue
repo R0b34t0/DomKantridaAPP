@@ -14,7 +14,7 @@
           {{ state.user.email }}
           <q-avatar
             v-if="state.collectionUser"
-            color="secondary"
+            color="orange"
             text-color="white"
             >{{
               state.collectionUser.ime.charAt(0) +

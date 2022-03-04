@@ -3,7 +3,7 @@
     <q-btn color="primary" label="Dodaj klijenta" @click="handleClick" />
     <q-dialog v-model="state.prompt" persistent wid>
       <q-card style="min-width: 500px">
-        <q-form style="width: 100%" @submit="dodajKlijenta(v$)">
+        <q-form style="width: 100%">
           <q-card-section class="q-pt-none">
             <h6>Dodaj klijenta</h6>
             <div class="q-ma-lg">
@@ -103,8 +103,15 @@
               color="primary"
               flat
               label="Dodaj klijenta"
-              type="submit"
-              :disable="!provjeriDatum()"
+              @click="dodajKlijenta(v$)"
+              v-if="!this.urediKlijenta"
+            />
+            <q-btn
+              color="primary"
+              flat
+              label="Uredi podatke"
+              @click="azurirajBazuPodataka(v$)"
+              v-if="this.urediKlijenta"
             />
           </q-card-actions>
         </q-form>
@@ -122,7 +129,7 @@
 import { ref, computed, reactive, defineComponent } from "vue";
 import Ugovori from "../components/Ugovori.vue";
 
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "src/boot/firebase";
 
 import useVuelidate from "@vuelidate/core";
@@ -134,12 +141,10 @@ import {
   numeric,
   helpers,
 } from "@vuelidate/validators";
-// import { phoneRegex } from "../utils/regex";
 
 export default defineComponent({
   components: { Ugovori },
   name: "UnosDostave",
-
   data() {
     return {
       handleUgovor: false,
@@ -233,8 +238,18 @@ export default defineComponent({
       console.log(myDate[0], myDate[1] - 1, myDate[2]);
       return new Date(myDate[0], myDate[1] - 1, myDate[2]);
     },
+    resetState() {
+      this.state.ime = "";
+      this.state.prezime = "";
+      this.state.email = "";
+      this.state.OIB = "";
+      (this.state.adresa = ""), (this.state.odabraniDio = "");
+      this.state.datumRodjenja = "";
+      this.state.brojTelefona = "";
+    },
     handleClick() {
       this.state.prompt = true;
+      this.resetState();
     },
     async dodajKlijenta(v$) {
       const formIsValid = await v$.$validate();
@@ -252,14 +267,8 @@ export default defineComponent({
           brojTelefona: this.state.brojTelefona,
         });
         console.log("Document written with ID: ", docRef.id);
-        this.ime = "";
         this.state.prompt = false;
-        this.state.prezime = "";
-        this.state.email = "";
-        this.state.OIB = "";
-        (this.state.adresa = ""), (this.state.odabraniDio = "");
-        this.state.datumRodjenja = "";
-        this.state.brojTelefona = "";
+        this.resetState();
       }
     },
     provjeriDatum() {
@@ -274,12 +283,54 @@ export default defineComponent({
 
       return this.state.datumRodjenja < trenutniDatum;
     },
-    provjeriVrijednost(val) {
-      console.log(val);
+    urediVrijednosti() {
+      let noviPodaci = this.podaciOdabranogKlijenta[0];
+      this.state.ime = noviPodaci.ime;
+      this.state.prezime = noviPodaci.prezime;
+      this.state.email = noviPodaci.email;
+      this.state.OIB = noviPodaci.OIB;
+      (this.state.adresa = noviPodaci.adresa),
+        (this.state.odabraniDio = noviPodaci.odabraniDio);
+      // predobrada datuma da Quasar moze ucitati u field
+      let datumRodjenja = noviPodaci.datumRodjenja.split("/");
+      this.state.datumRodjenja =
+        datumRodjenja[2] + "-" + datumRodjenja[1] + "-" + datumRodjenja[0];
+      this.state.brojTelefona = noviPodaci.brojTelefona;
+      // poziv funkciji za azuriranja
+    },
+    async azurirajBazuPodataka(v$) {
+      const formIsValid = await v$.$validate();
+
+      if (formIsValid) {
+        const dbRef = doc(db, "Klijenti", this.podaciOdabranogKlijenta[0].id);
+
+        updateDoc(dbRef, {
+          ime: this.state.ime,
+          prezime: this.state.prezime,
+          email: this.state.email,
+          OIB: this.state.OIB,
+          adresa: this.state.adresa,
+          odabraniDio: this.state.odabraniDio,
+          datumRodjenja: this.pretvoriDatum(this.state.datumRodjenja),
+          brojTelefona: this.state.brojTelefona,
+        }).then(() => {
+          this.resetState();
+          window.location.reload();
+          this.state.prompt = false;
+        });
+      }
     },
   },
-
-  mounted() {},
+  // Definirani propovi da se mogu slati podaci iz parenta
+  // urediKlijenta je bool koji oznacava je li poslan prop za edit
+  props: ["podaciOdabranogKlijenta", "urediKlijenta"],
+  // potreban je watcher da pratimo promjenu vrijednosti iz parenta
+  watch: {
+    urediKlijenta: function () {
+      this.state.prompt = !this.state.prompt;
+      this.urediVrijednosti();
+    },
+  },
 });
 </script>
 

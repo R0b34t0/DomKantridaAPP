@@ -29,6 +29,8 @@
       <UnosDostave
         class="flex-end col-4"
         :izabraniDatum="state.izabraniDatum"
+        :dostave="state.dostave"
+        :disableBtn="state.disableBtn"
       />
     </div>
 
@@ -120,6 +122,7 @@ export default {
               ? getDateAndTime(data.vrijemeZavrsetkaDostave.seconds)
               : "/",
             adresa: klijent ? klijent.adresa : "Nema podataka",
+            id_klijenta: klijent ? klijent.id : "Nema podatka",
             klijent: klijent ? klijent.ime : "Nema podataka",
             vozac: vozac ? vozac.ime : "Nema podatka",
             brojTelefona: vozac ? vozac.brojTelefona : "Nema podatka",
@@ -197,7 +200,7 @@ export default {
       state.dostave = [];
       const datum = new Date(state.izabraniDatum);
       datum.setHours(1, 0, 0);
-      if (datum <= today) {
+      if (datum.getDay() === 0 || datum <= today) {
         state.disableBtn = true;
       } else {
         state.disableBtn = false;

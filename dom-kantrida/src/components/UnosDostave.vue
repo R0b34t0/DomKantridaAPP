@@ -5,7 +5,7 @@
       color="orange"
       icon="autorenew"
       label="Generiraj"
-      :disabled="state.disableBtn"
+      :disable="props.disableBtn || props.dostave.length > 0"
       style="margin-right: 20px"
       @click="handleClickAuto"
     />
@@ -14,11 +14,12 @@
       color="primary"
       label="Dodaj"
       icon="add"
+      :disable="props.disableBtn"
       @click="handleClickManual"
     />
 
     <q-dialog v-model="state.prompt" persistent wid>
-      <q-card style="min-width: 700px">
+      <q-card style="min-width: 900px">
         <q-form style="width: 100%" @submit.stop="onSubmit(v$)">
           <q-card-section class="q-pt-none">
             <h5 class="col-6" style="margin-bottom: 20px">
@@ -41,6 +42,17 @@
                 >VAŽNO! Potrebno je odabrati vozača za svaku dostavu!</strong
               >
             </p>
+            <strong
+              v-if="state.mode === 'manual' && state.klijenti.length === 0"
+              style="color: red; margin-bottom: 20px"
+              >PAŽNJA! Svi klijenti koji imaju ugovorenu dostavu za odabrani
+              datum već se nalaze na dostavi!</strong
+            ><strong
+              v-if="state.mode === 'auto' && state.dostave.length > 0"
+              style="color: red; margin-bottom: 20px"
+              >PAŽNJA! Nije moguće koristiti automatskog generiranje ako već
+              postoje dodane dostave!</strong
+            >
             <!-- Manualno dodavanje - 1 po 1 dostava za dan -->
             <!-- select za korisnika -->
             <div v-if="state.mode === 'manual'">
@@ -52,6 +64,7 @@
                 stack-label
                 input-debounce="2"
                 label="Klijent"
+                :disable="state.klijenti.length === 0"
                 :options="
                   state.klijentiOptions ? state.klijentiOptions : state.klijenti
                 "
@@ -118,6 +131,7 @@
                 input-debounce="2"
                 label="Vozač"
                 clearable
+                :disable="state.klijenti.length === 0"
                 :options="state.vozaci"
                 :error="v$.izabraniVozac.$error"
               >
@@ -152,18 +166,95 @@
               <q-input
                 class="input-field"
                 outlined
-                v-model="state.novaDostava.napomena"
+                v-model="state.napomena"
+                :disable="state.klijenti.length === 0"
                 label="Napomena"
               />
             </div>
             <!-- Automatsko generiranje - ispisu se sve dostave za dan, potrebno je samo odabrati vozaca -->
-            <div v-if="state.mode === 'auto'">h</div>
+            <div v-if="state.mode === 'auto'">
+              <div class="flex-start">
+                <q-btn-toggle
+                  v-model="state.izabraniDioGrada"
+                  toggle-color="primary"
+                  spread
+                  color="white"
+                  text-color="primary"
+                  style="
+                    border-bottom-left-radius: 0px;
+                    border-bottom-right-radius: 0px;
+                    width: 300px;
+                  "
+                  :options="[
+                    { label: 'ISTOK', value: 'ISTOK' },
+                    { label: 'ZAPAD', value: 'ZAPAD' },
+                  ]"
+                />
+              </div>
+
+              <q-table
+                :table-header-style="{
+                  backgroundColor: '#1976D2',
+                  color: 'white',
+                }"
+                style="border-top-left-radius: 0px"
+                :rows="filterDostava()"
+                :columns="columns"
+                row-key="id"
+                :loading="state.loading"
+                no-data-label="Nema dostava za izabrani datum"
+                loading-label="Podaci se učitavaju... "
+                color="orange"
+                hide-bottom
+                :pagination="pagination"
+              >
+                <template v-slot:body-cell-vozac="vozac">
+                  <q-td :props="vozac">
+                    <!-- select za vozaca renderiran za svaki redak u tablici -->
+                    <q-select
+                      class="input-field"
+                      outlined
+                      v-model="state.izabraniVozaci[vozac.row.id_klijenta]"
+                      :disable="state.klijenti.length === 0"
+                      :options="state.vozaci"
+                      :clearable="state.izabraniVozac !== null"
+                      @update:model-value="dodajVozacaNaGeneriranuVoznju(vozac)"
+                    >
+                      <template v-slot:selected>
+                        <q-chip
+                          v-if="state.izabraniVozaci[vozac.row.id_klijenta]"
+                          dense
+                          square
+                          color="white"
+                          text-color="primary"
+                          class="q-my-none q-ml-xs q-mr-none"
+                        >
+                          {{ state.izabraniVozaci[vozac.row.id_klijenta].ime }}
+                        </q-chip>
+                      </template>
+                      <template v-slot:option="scope">
+                        <q-item v-bind="scope.itemProps">
+                          <q-item-section>
+                            <q-item-label>{{ scope.opt.ime }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </template></q-select
+                    >
+
+                    <div class="my-table-details">
+                      {{ vozac.row.details }}
+                    </div>
+                  </q-td>
+                </template>
+              </q-table>
+            </div>
           </q-card-section>
           <q-card-actions align="right" class="text-primary">
             <q-btn flat label="Odustani" @click="handleClose(v$)" />
             <q-btn
               type="submit"
               color="primary"
+              :disable="state.klijenti.length === 0"
               :label="
                 state.mode === 'manual'
                   ? 'Dodaj dostavu'
@@ -181,7 +272,7 @@
   </div>
 </template>
 <script>
-import { reactive, onMounted, onUnmounted } from "vue";
+import { reactive, onMounted, onUnmounted, toRefs, toRef } from "vue";
 import { db } from "src/boot/firebase";
 import { collection, query, getDocs, where, addDoc } from "firebase/firestore";
 import useVuelidate from "@vuelidate/core";
@@ -189,30 +280,25 @@ import { required, helpers } from "@vuelidate/validators";
 
 export default {
   name: "UnosDostave",
-  props: {
-    izabraniDatum: String,
-  },
+  props: ["dostave", "izabraniDatum", "disableBtn"],
   setup(props) {
     const state = reactive({
+      today: new Date(),
       prompt: false,
-      dostave: [],
+      disableBtn: false,
       autoGeneriraneDostave: [],
+      izabraniDioGrada: "ISTOK",
       loading: false,
       klijenti: [],
       vozaci: [],
       dostave: [],
       mode: "manual",
       izabraniKlijent: {},
-      izabraniVozac: {},
-      izabraniDatum: new Date(props.izabraniDatum),
-      novaDostava: {
-        datumDostave: new Date(props.izabraniDatum),
-        statusDostave: "NA ČEKANJU",
-        napomena: "",
-      },
+      izabraniVozac: null,
+      izabraniVozaci: [],
+      napomena: "",
       klijentiOptions: [],
     });
-    const today = new Date();
 
     const rules = {
       izabraniKlijent: {
@@ -256,14 +342,21 @@ export default {
         let data = doc.data();
         let ugovor = await getDataUgovor(doc.id);
         if (ugovor && ugovor.zaduzeniRuckovi > 0) {
-          state.klijenti.push({
-            id: doc.id,
-            ime: data.ime && data.prezime ? data.ime + " " + data.prezime : "",
-            OIB: data.OIB ? data.OIB : "",
-            adresa: data.adresa ? data.adresa : "",
-            brojTelefona: data.brojTelefona ? data.brojTelefona : "",
-            brojPaketa: ugovor.zaduzeniRuckovi,
-          });
+          const alreadyPicked = props.dostave.find(
+            (dostava) => dostava.id_klijenta === doc.id
+          );
+          if (alreadyPicked === undefined) {
+            state.klijenti.push({
+              id: doc.id,
+              ime:
+                data.ime && data.prezime ? data.ime + " " + data.prezime : "",
+              OIB: data.OIB ? data.OIB : "",
+              adresa: data.adresa ? data.adresa : "",
+              brojTelefona: data.brojTelefona ? data.brojTelefona : "",
+              brojPaketa: ugovor.zaduzeniRuckovi,
+              dioGrada: data.odabraniDio ? data.odabraniDio : "ISTOK",
+            });
+          }
         }
 
         state.klijentiOptions = state.klijenti;
@@ -277,10 +370,11 @@ export default {
       const q = query(
         docRef,
         where("korisnik", "==", uid),
-        where("zavrsetakTretmana", ">=", state.izabraniDatum)
+        where("zavrsetakTretmana", ">=", new Date(props.izabraniDatum))
       );
       const docSnap = await getDocs(q);
-      const izabraniDan = state.izabraniDatum.getDay();
+      const datum = new Date(props.izabraniDatum);
+      const izabraniDan = datum.getDay();
       let ugovorTest = {};
       docSnap.forEach((doc) => {
         let data = doc.data();
@@ -304,16 +398,32 @@ export default {
           state.loading = true;
           await addDoc(collection(db, "Dostave"), {
             brojPaketa: state.izabraniKlijent.brojPaketa,
-            datumDostave: state.novaDostava.datumDostave,
+            datumDostave: new Date(props.izabraniDatum),
             klijent: state.izabraniKlijent.id,
-            statusDostave: state.novaDostava.statusDostave,
+            statusDostave: "NA ČEKANJU",
             vozac: state.izabraniVozac.id,
-            napomena: state.novaDostava.napomena,
+            napomena: state.napomena,
           }).catch((err) => {
             console.log(err);
           });
           handleClose(v$);
         }
+      }
+    };
+    // za automatsko generiranje dostava
+    const autoGenerate = async () => {
+      state.autoGeneriraneDostave = [];
+      for (const klijent of state.klijenti) {
+        state.autoGeneriraneDostave.push({
+          brojPaketa: klijent.brojPaketa,
+          datumDostave: new Date(props.izabraniDatum),
+          statusDostave: "NA ČEKANJU",
+          adresa: klijent.adresa,
+          id_klijenta: klijent.id,
+          imeKlijenta: klijent.ime,
+          vozac: "",
+          dioGrada: klijent.dioGrada,
+        });
       }
     };
 
@@ -329,10 +439,12 @@ export default {
     const handleClickManual = () => {
       state.prompt = true;
       state.mode = "manual";
+      getDataKlijenti();
     };
-    const handleClickAuto = () => {
+    const handleClickAuto = async () => {
       state.prompt = true;
       state.mode = "auto";
+      await autoGenerate();
     };
 
     const handleClose = (v$) => {
@@ -340,21 +452,81 @@ export default {
       state.prompt = false;
       state.izabraniKlijent = {};
       state.izabraniVozac = {};
-      state.novaDostava = {
-        datumDostave: null,
-        statusDostave: "NA ČEKANJU",
-        napomena: "",
-      };
+      state.napomena = "";
       v$.$reset();
+    };
+
+    const filterDostava = () => {
+      let dostave = [];
+      state.autoGeneriraneDostave.filter((dostava) => {
+        if (
+          dostava?.dioGrada?.toUpperCase() ===
+          state.izabraniDioGrada.toUpperCase()
+        ) {
+          dostave.push(dostava);
+        }
+      });
+      return dostave;
+    };
+
+    const dodajVozacaNaGeneriranuVoznju = (vozac) => {
+      const edit = state.autoGeneriraneDostave.map((dostava) => {
+        if (dostava.id_klijenta === vozac.row.id_klijenta) {
+          dostava.vozac = state.izabraniVozaci[vozac.row.id_klijenta];
+        }
+        return dostava;
+      });
+      console.log(edit);
+    };
+
+    const columns = [
+      {
+        name: "vozac",
+        label: "Vozac",
+        align: "center",
+        field: "vozac",
+        sortable: false,
+        style: "width:300px",
+      },
+      {
+        name: "brojPaketa",
+        align: "center",
+        label: "Broj paketa",
+        field: "brojPaketa",
+        sortable: true,
+      },
+      {
+        name: "klijent",
+        label: "Klijent",
+        align: "center",
+        field: "imeKlijenta",
+        sortable: false,
+      },
+      {
+        name: "adresa",
+        label: "Adresa",
+        align: "center",
+        field: "adresa",
+        sortable: false,
+      },
+    ];
+    const pagination = {
+      page: 1,
+      rowsPerPage: 0,
     };
 
     return {
       state,
+      props,
+      columns,
+      pagination,
       handleClickManual,
+      dodajVozacaNaGeneriranuVoznju,
       handleClickAuto,
       onSubmit,
       handleClose,
       v$,
+      filterDostava,
       filterFn(val, update) {
         update(() => {
           const needle = val.toLowerCase();

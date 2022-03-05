@@ -42,6 +42,7 @@
                 >VAŽNO! Potrebno je odabrati vozača za svaku dostavu!</strong
               >
             </p>
+
             <strong
               v-if="state.mode === 'manual' && state.klijenti.length === 0"
               style="color: red; margin-bottom: 20px"
@@ -130,7 +131,6 @@
                 v-model="state.izabraniVozac"
                 input-debounce="2"
                 label="Vozač"
-                clearable
                 :disable="state.klijenti.length === 0"
                 :options="state.vozaci"
                 :error="v$.izabraniVozac.$error"
@@ -249,12 +249,20 @@
               </q-table>
             </div>
           </q-card-section>
+          <q-card-section
+            v-if="state.mode === 'auto' && state.invalidForm"
+            class="flex-center"
+            style="font-size: 18px"
+            ><strong style="margin-bottom: 30px; color: red">
+              Vozač nije izabran za svaku dostavu i podaci se ne mogu
+              spremiti.<br /> </strong
+          ></q-card-section>
           <q-card-actions align="right" class="text-primary">
             <q-btn flat label="Odustani" @click="handleClose(v$)" />
             <q-btn
               type="submit"
               color="primary"
-              :disable="state.klijenti.length === 0"
+              :disable="state.disableAutoBtn"
               :label="
                 state.mode === 'manual'
                   ? 'Dodaj dostavu'
@@ -272,20 +280,50 @@
   </div>
 </template>
 <script>
-import { reactive, onMounted, onUnmounted, toRefs, toRef } from "vue";
-import { db } from "src/boot/firebase";
-import { collection, query, getDocs, where, addDoc } from "firebase/firestore";
+import { reactive, onMounted, watch, toRaw } from "vue";
+import { db, batch } from "src/boot/firebase";
+import {
+  collection,
+  query,
+  getDocs,
+  where,
+  addDoc,
+  limit,
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import useVuelidate from "@vuelidate/core";
 import { required, helpers } from "@vuelidate/validators";
-
+/*TODO: DOSTAVE
+1. dodaj validaciju na izabrane vozace u auto generiranju
+2. spremi automatski generirane dostave u bazu
+3. dodaj kopiranje vozaca sa prethodnih dostava - pregledaj bazu dostava i za odredjenog korisnika nadji id vozaca i tog vozaca dodaj na novu dostavu
+- ako nema zapisa dostave za odrejenog klijenta, onda ostavi prazno - korisnik ce sam odabrati vozaca, te dostave ce biti prikazane prve
+4. dodaj mogucnost edita vozaca - unutar same tablice u polje vozaca dodaj olovku, ako se klikne olovka onda se stvori select u tablici i samo se spremi
+5. dodaj mogucnost brisanja dostava i sa tablice dostave i sa auto generiranja
+TODO: KORISNICI
+1. dodaj validaciju na OIB - pretrazi bazu korisnika i provjeri jel postoji neki sa istim OIB-om - ovo nek se radi na onchange u polju oib
+2. dodaj edit i delete opciju za korisnike - mozda ne dopustit potpuni delete nego samo soft zbog prethodnih dostava - samo blokirat korisnika
+3. dodat mogucnost promjene lozinke za korisnike
+4. mogucnost ispisa podataka o korisniku
+TODO: ALL
+1. dodaj blokiranje ruta
+2. dodaj grafikone na nadzornu plocu i mogucnost pregleda prijavljenih kasnjenja za odredjeni dan i popisa sa zadnjom dostavljenom dostavom po vozacu i vremenom dostave
+TODO: MOBILNA APLIKACIJA
+1. pregled dostava prema prijavljenom vozacu
+2. responsive design
+3. mogucnost potvrde dostave ili oznacavanja sa 'nije dostavljeno'
+4. mogucnost prijave kasnjenja u svakom trenutku
+*/
 export default {
   name: "UnosDostave",
-  props: ["dostave", "izabraniDatum", "disableBtn"],
+  props: ["dostave", "izabraniDatum", "disableBtn", "brojDostava"],
   setup(props) {
     const state = reactive({
       today: new Date(),
       prompt: false,
       disableBtn: false,
+      invalidForm: false,
       autoGeneriraneDostave: [],
       izabraniDioGrada: "ISTOK",
       loading: false,
@@ -334,19 +372,16 @@ export default {
     };
     // query za klijente koji se koriste u select-u (prikazuju se samo oni klijenti koji za obabrani dan imaju vise od 0 zaduzenih ruckova)
     const getDataKlijenti = async () => {
+      let popisKlijenata = [];
       state.loading = true;
       const q = query(collection(db, "Klijenti"));
       const querySnapshot = await getDocs(q);
-      state.klijenti = [];
       querySnapshot.forEach(async (doc) => {
         let data = doc.data();
         let ugovor = await getDataUgovor(doc.id);
         if (ugovor && ugovor.zaduzeniRuckovi > 0) {
-          const alreadyPicked = props.dostave.find(
-            (dostava) => dostava.id_klijenta === doc.id
-          );
-          if (alreadyPicked === undefined) {
-            state.klijenti.push({
+          if (props.dostave.length > 0) {
+            popisKlijenata.push({
               id: doc.id,
               ime:
                 data.ime && data.prezime ? data.ime + " " + data.prezime : "",
@@ -356,12 +391,28 @@ export default {
               brojPaketa: ugovor.zaduzeniRuckovi,
               dioGrada: data.odabraniDio ? data.odabraniDio : "ISTOK",
             });
+          } else if (props.dostave.length === 0) {
+            const alreadyPicked = props.dostave.find(
+              (dostava) => dostava.id_klijenta === doc.id
+            );
+            if (alreadyPicked === undefined) {
+              popisKlijenata.push({
+                id: doc.id,
+                ime:
+                  data.ime && data.prezime ? data.ime + " " + data.prezime : "",
+                OIB: data.OIB ? data.OIB : "",
+                adresa: data.adresa ? data.adresa : "",
+                brojTelefona: data.brojTelefona ? data.brojTelefona : "",
+                brojPaketa: ugovor.zaduzeniRuckovi,
+                dioGrada: data.odabraniDio ? data.odabraniDio : "ISTOK",
+              });
+            }
           }
         }
-
-        state.klijentiOptions = state.klijenti;
-        state.loading = false;
       });
+      state.klijenti = popisKlijenata;
+      state.klijentiOptions = popisKlijenata;
+      state.loading = false;
     };
 
     // podaci o ugovori za odredjenog korisnika
@@ -391,7 +442,20 @@ export default {
     inace se dodaje vise dostava odjednom - u oba slucaja forma se submita samo ako prodje validaciju */
     const onSubmit = async (v$) => {
       if (state.mode === "auto") {
-        console.log("auto");
+        if (Object.keys(state.izabraniVozaci).length < state.klijenti.length) {
+          state.invalidForm = true;
+        } else {
+          for (const dostava of state.autoGeneriraneDostave) {
+            const newDoc = {
+              adresa: dostava.adresa,
+              brojPaketa: dostava.brojPaketa,
+            };
+            // var docRef = doc(collection(db, "Dostave"));
+            // console.log(toRaw(dostava));
+            // batch.set(docRef, toRaw(dostava));
+          }
+          // await batch.commit();
+        }
       } else if (state.mode === "manual") {
         const formIsValid = await v$.$validate();
         if (formIsValid) {
@@ -410,10 +474,52 @@ export default {
         }
       }
     };
-    // za automatsko generiranje dostava
+    // trazi podatke o vozacu koji se nalazi na odredjenoj dostavi i ako postoji vozac vraca njegove podatke, a ako ne vraca null
+    const pronadjiVozacaZaKlijenta = async (uid) => {
+      const docRef = doc(db, "Korisnici", uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const vozac = {
+          id: docSnap.id,
+          ime: data.ime + " " + data.prezime,
+          brojTelefona: data.brojTelefona,
+        };
+        return vozac;
+      } else {
+        console.log("Vozac nije pronadjen!");
+        return null;
+      }
+    };
+    // trazi prethodne dostave za odredjenog klijenta i vraca jednu te poziva funkciju koja trazi podatke vozaca za tu dostavu
+    const pronadjiPrethodneDostaveKlijenta = async (uid) => {
+      state.loading = true;
+      const q = query(
+        collection(db, "Dostave"),
+        where("klijent", "==", uid),
+        limit(1)
+      );
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(async (doc) => {
+        let data = doc.data();
+        let vozac = await pronadjiVozacaZaKlijenta(data.vozac);
+        state.izabraniVozaci[uid] = {
+          id: doc.id ? doc.id : "",
+          ime: vozac.ime ? vozac.ime : "",
+          brojTelefona: vozac.brojTelefona ? vozac.brojTelefona : "",
+        };
+        state.loading = false;
+      });
+    };
+    // za automatsko generiranje dostava, prolazi kroz klijente i za svakog poziva funckiju koja trazi prethodne dostave
     const autoGenerate = async () => {
+      state.izabraniVozaci = [];
       state.autoGeneriraneDostave = [];
       for (const klijent of state.klijenti) {
+        await pronadjiPrethodneDostaveKlijenta(klijent.id);
+        const id_vozaca = state.izabraniVozaci[klijent.id]
+          ? state.izabraniVozaci[klijent.id].id
+          : test;
         state.autoGeneriraneDostave.push({
           brojPaketa: klijent.brojPaketa,
           datumDostave: new Date(props.izabraniDatum),
@@ -421,32 +527,33 @@ export default {
           adresa: klijent.adresa,
           id_klijenta: klijent.id,
           imeKlijenta: klijent.ime,
-          vozac: "",
+          vozac: id_vozaca,
           dioGrada: klijent.dioGrada,
         });
       }
     };
+    // prati izmjene datuma i na temelju tog ponovno fetcha klijente za odabrani dan
+    watch(
+      () => props.dostave,
+      async () => {
+        await getDataKlijenti(props.dostave);
+      }
+    );
 
     onMounted(() => {
-      getDataKlijenti();
       getDataVozaci();
-    });
-
-    onUnmounted(() => {
-      // unsub();
     });
 
     const handleClickManual = () => {
       state.prompt = true;
       state.mode = "manual";
-      getDataKlijenti();
     };
-    const handleClickAuto = async () => {
-      state.prompt = true;
+    const handleClickAuto = () => {
       state.mode = "auto";
-      await autoGenerate();
+      autoGenerate();
+      state.prompt = true;
     };
-
+    // kad se zatvori modalni prozor, ocisti podatke iz formi
     const handleClose = (v$) => {
       state.loading = false;
       state.prompt = false;
@@ -455,7 +562,7 @@ export default {
       state.napomena = "";
       v$.$reset();
     };
-
+    // filtrira dostave na istok i zapad
     const filterDostava = () => {
       let dostave = [];
       state.autoGeneriraneDostave.filter((dostava) => {
@@ -468,7 +575,7 @@ export default {
       });
       return dostave;
     };
-
+    // kada se odabere vozac u auto generiranju formi
     const dodajVozacaNaGeneriranuVoznju = (vozac) => {
       const edit = state.autoGeneriraneDostave.map((dostava) => {
         if (dostava.id_klijenta === vozac.row.id_klijenta) {
@@ -476,7 +583,12 @@ export default {
         }
         return dostava;
       });
-      console.log(edit);
+      state.autoGeneriraneDostave = edit;
+      if (Object.keys(state.izabraniVozaci).length < state.klijenti.length) {
+        state.invalidForm = true;
+      } else {
+        state.invalidForm = false;
+      }
     };
 
     const columns = [
@@ -527,6 +639,7 @@ export default {
       handleClose,
       v$,
       filterDostava,
+      //koristi se za search klijenata
       filterFn(val, update) {
         update(() => {
           const needle = val.toLowerCase();

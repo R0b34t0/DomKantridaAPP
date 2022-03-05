@@ -29,7 +29,7 @@
       <UnosDostave
         class="flex-end col-4"
         :izabraniDatum="state.izabraniDatum"
-        :dostave="state.dostave"
+        :dostave="JSON.parse(JSON.stringify(state.dostave))"
         :disableBtn="state.disableBtn"
       />
     </div>

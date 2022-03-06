@@ -217,7 +217,6 @@
                       v-model="state.izabraniVozaci[vozac.row.id_klijenta]"
                       :disable="state.klijenti.length === 0"
                       :options="state.vozaci"
-                      :clearable="state.izabraniVozac !== null"
                       @update:model-value="dodajVozacaNaGeneriranuVoznju(vozac)"
                     >
                       <template v-slot:selected>
@@ -296,7 +295,6 @@ import {
 import useVuelidate from "@vuelidate/core";
 import { required, helpers } from "@vuelidate/validators";
 /*TODO: DOSTAVE
-4. dodaj mogucnost edita vozaca - unutar same tablice u polje vozaca dodaj olovku, ako se klikne olovka onda se stvori select u tablici i samo se spremi
 5. dodaj mogucnost brisanja dostava i sa tablice dostave i sa auto generiranja
 TODO: KORISNICI
 2. dodaj edit i delete opciju za korisnike - mozda ne dopustit potpuni delete nego samo soft zbog prethodnih dostava - samo blokirat korisnika

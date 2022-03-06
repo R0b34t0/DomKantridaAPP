@@ -239,7 +239,7 @@ export default {
     // podaci o ugovori za odredjenog korisnika
     const getUgovor = async (uid) => {
       const docRef = collection(db, "Ugovori");
-      const q = query(docRef, where("korisnik", "==", uid));
+      const q = query(docRef, where("klijent", "==", uid));
       const docSnap = await getDocs(q);
       const datum = new Date(state.izabraniDatum);
       const izabraniDan = datum.getDay();
@@ -251,12 +251,13 @@ export default {
           vrstaPrehrane: data.vrstaPrehrane,
           zaduzeniRuckovi: data.zaduzeniRuckovi[izabraniDan],
         };
+
         ugovorTest = ugovor;
       });
       return ugovorTest;
     };
     // podaci o vozacima
-    const getDataVozaci = async (uid, klijent) => {
+    const getDataVozaci = async (uid) => {
       const docRef = doc(db, "Korisnici", uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {

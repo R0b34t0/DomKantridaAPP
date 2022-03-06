@@ -208,6 +208,22 @@
                 hide-bottom
                 :pagination="pagination"
               >
+                <template v-slot:body-cell-action="action">
+                  <q-td :props="action">
+                    <div>
+                      <q-btn
+                        flat
+                        round
+                        color="red"
+                        icon="delete"
+                        @click="deleteDostaveIzGeneriranihDostava(action)"
+                      />
+                    </div>
+                    <div class="my-table-details">
+                      {{ action.row.details }}
+                    </div>
+                  </q-td>
+                </template>
                 <template v-slot:body-cell-vozac="vozac">
                   <q-td :props="vozac">
                     <!-- select za vozaca renderiran za svaki redak u tablici -->
@@ -257,7 +273,12 @@
               spremiti.<br /> </strong
           ></q-card-section>
           <q-card-actions align="right" class="text-primary">
-            <q-btn flat label="Odustani" @click="handleClose(v$)" />
+            <q-btn
+              flat
+              type="button"
+              label="Odustani"
+              @click="handleClose(v$)"
+            />
             <q-btn
               type="submit"
               color="primary"
@@ -294,10 +315,8 @@ import {
 } from "firebase/firestore";
 import useVuelidate from "@vuelidate/core";
 import { required, helpers } from "@vuelidate/validators";
-/*TODO: DOSTAVE
-5. dodaj mogucnost brisanja dostava i sa tablice dostave i sa auto generiranja
+/*=
 TODO: KORISNICI
-2. dodaj edit i delete opciju za korisnike - mozda ne dopustit potpuni delete nego samo soft zbog prethodnih dostava - samo blokirat korisnika
 3. dodat mogucnost promjene lozinke za korisnike
 4. mogucnost ispisa podataka o korisniku
 TODO: ALL
@@ -361,8 +380,8 @@ export default {
           ime: data.ime && data.prezime ? data.ime + " " + data.prezime : "",
           brojTelefona: data.brojTelefona ? data.brojTelefona : "",
         });
-        state.loading = false;
       });
+      state.loading = false;
     };
     // query za klijente koji se koriste u select-u (prikazuju se samo oni klijenti koji za obabrani dan imaju vise od 0 zaduzenih ruckova)
     const getDataKlijenti = async () => {
@@ -414,8 +433,8 @@ export default {
       const docRef = collection(db, "Ugovori");
       const q = query(
         docRef,
-        where("korisnik", "==", uid),
-        where("zavrsetakTretmana", ">=", new Date(props.izabraniDatum))
+        where("klijent", "==", uid),
+        where("datumZavrsetkaTretmana", ">=", new Date(props.izabraniDatum))
       );
       const docSnap = await getDocs(q);
       const datum = new Date(props.izabraniDatum);
@@ -471,6 +490,7 @@ export default {
             console.log(err);
           });
           handleClose(v$);
+          state.loading = false;
         }
       }
     };
@@ -508,9 +528,10 @@ export default {
           ime: vozac.ime ? vozac.ime : "",
           brojTelefona: vozac.brojTelefona ? vozac.brojTelefona : "",
         };
-        state.loading = false;
+
         state.izabraniVozaci[uid] = noviVozac;
       });
+      state.loading = false;
     };
     // za automatsko generiranje dostava, prolazi kroz klijente i za svakog poziva funckiju koja trazi prethodne dostave
     const autoGenerate = async () => {
@@ -589,6 +610,19 @@ export default {
       }
     };
 
+    const deleteDostaveIzGeneriranihDostava = (action) => {
+      const zaDelete = state.autoGeneriraneDostave.find((dostava) => {
+        if (dostava.id_klijenta === action.row.id_klijenta) {
+          return dostava;
+        }
+      });
+      const index = state.autoGeneriraneDostave.indexOf(zaDelete);
+      state.autoGeneriraneDostave.splice(index, 1);
+      delete state.izabraniVozaci[zaDelete.id_klijenta];
+      const indexKlijenta = state.klijenti.indexOf(zaDelete.id_klijenta);
+      state.klijenti.splice(indexKlijenta, 1);
+    };
+
     const columns = [
       {
         name: "vozac",
@@ -619,6 +653,13 @@ export default {
         field: "adresa",
         sortable: false,
       },
+      {
+        name: "action",
+        align: "center",
+        label: "",
+        field: (row) => row.name,
+        sortable: false,
+      },
     ];
     const pagination = {
       page: 1,
@@ -632,6 +673,7 @@ export default {
       pagination,
       handleClickManual,
       dodajVozacaNaGeneriranuVoznju,
+      deleteDostaveIzGeneriranihDostava,
       handleClickAuto,
       onSubmit,
       handleClose,

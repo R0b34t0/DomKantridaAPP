@@ -117,17 +117,10 @@
         </q-form>
       </q-card>
     </q-dialog>
-    <q-btn label="Ugovori" @click="this.handleUgovor = !this.handleUgovor" />
-    <q-dialog v-model="handleUgovor" persistent wid>
-      <q-card style="min-width: 500px" class="absolute-center">
-        <Ugovori />
-      </q-card>
-    </q-dialog>
   </div>
 </template>
 <script>
 import { ref, computed, reactive, defineComponent } from "vue";
-import Ugovori from "../components/Ugovori.vue";
 
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "src/boot/firebase";
@@ -143,12 +136,9 @@ import {
 } from "@vuelidate/validators";
 
 export default defineComponent({
-  components: { Ugovori },
   name: "UnosDostave",
   data() {
     return {
-      handleUgovor: false,
-
       provjeriDatumRule: [
         (vrijednost) =>
           this.provjeriDatum() ||

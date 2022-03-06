@@ -13,6 +13,18 @@ const routes = [{
         path: "dostave",
         component: () => import("pages/Dostave.vue"),
         // meta: { requiresAuth: true },
+      }, {
+        path: "klijenti",
+        component: () => import("pages/Klijenti.vue"),
+        meta: {
+          requiresAuth: true
+        },
+      }, {
+        path: "ugovori",
+        component: () => import("pages/Ugovori.vue"),
+        meta: {
+          requiresAuth: true
+        },
       },
     ],
   },

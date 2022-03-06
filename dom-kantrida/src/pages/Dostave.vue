@@ -210,6 +210,7 @@ export default {
     //
     onMounted(() => {
       getData(state.izabraniDatum);
+      onDateChange(today);
     });
 
     onUnmounted(() => {

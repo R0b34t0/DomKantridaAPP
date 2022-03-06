@@ -281,7 +281,7 @@
 </template>
 <script>
 import { reactive, onMounted, watch, toRaw } from "vue";
-import { db, batch } from "src/boot/firebase";
+import { db } from "src/boot/firebase";
 import {
   collection,
   query,
@@ -291,18 +291,14 @@ import {
   limit,
   doc,
   getDoc,
+  writeBatch,
 } from "firebase/firestore";
 import useVuelidate from "@vuelidate/core";
 import { required, helpers } from "@vuelidate/validators";
 /*TODO: DOSTAVE
-1. dodaj validaciju na izabrane vozace u auto generiranju
-2. spremi automatski generirane dostave u bazu
-3. dodaj kopiranje vozaca sa prethodnih dostava - pregledaj bazu dostava i za odredjenog korisnika nadji id vozaca i tog vozaca dodaj na novu dostavu
-- ako nema zapisa dostave za odrejenog klijenta, onda ostavi prazno - korisnik ce sam odabrati vozaca, te dostave ce biti prikazane prve
 4. dodaj mogucnost edita vozaca - unutar same tablice u polje vozaca dodaj olovku, ako se klikne olovka onda se stvori select u tablici i samo se spremi
 5. dodaj mogucnost brisanja dostava i sa tablice dostave i sa auto generiranja
 TODO: KORISNICI
-1. dodaj validaciju na OIB - pretrazi bazu korisnika i provjeri jel postoji neki sa istim OIB-om - ovo nek se radi na onchange u polju oib
 2. dodaj edit i delete opciju za korisnike - mozda ne dopustit potpuni delete nego samo soft zbog prethodnih dostava - samo blokirat korisnika
 3. dodat mogucnost promjene lozinke za korisnike
 4. mogucnost ispisa podataka o korisniku
@@ -310,8 +306,8 @@ TODO: ALL
 1. dodaj blokiranje ruta
 2. dodaj grafikone na nadzornu plocu i mogucnost pregleda prijavljenih kasnjenja za odredjeni dan i popisa sa zadnjom dostavljenom dostavom po vozacu i vremenom dostave
 TODO: MOBILNA APLIKACIJA
-1. pregled dostava prema prijavljenom vozacu
-2. responsive design
+1. pregled dostava prema prijavljenom vozacu - istok/zapad
+2. responsive design - pwa
 3. mogucnost potvrde dostave ili oznacavanja sa 'nije dostavljeno'
 4. mogucnost prijave kasnjenja u svakom trenutku
 */
@@ -380,7 +376,7 @@ export default {
         let data = doc.data();
         let ugovor = await getDataUgovor(doc.id);
         if (ugovor && ugovor.zaduzeniRuckovi > 0) {
-          if (props.dostave.length > 0) {
+          if (props.dostave.length === 0) {
             popisKlijenata.push({
               id: doc.id,
               ime:
@@ -391,7 +387,7 @@ export default {
               brojPaketa: ugovor.zaduzeniRuckovi,
               dioGrada: data.odabraniDio ? data.odabraniDio : "ISTOK",
             });
-          } else if (props.dostave.length === 0) {
+          } else if (props.dostave.length > 0) {
             const alreadyPicked = props.dostave.find(
               (dostava) => dostava.id_klijenta === doc.id
             );
@@ -445,16 +441,22 @@ export default {
         if (Object.keys(state.izabraniVozaci).length < state.klijenti.length) {
           state.invalidForm = true;
         } else {
+          let batch = writeBatch(db);
+          state.loading = true;
           for (const dostava of state.autoGeneriraneDostave) {
             const newDoc = {
-              adresa: dostava.adresa,
               brojPaketa: dostava.brojPaketa,
+              datumDostave: dostava.datumDostave,
+              klijent: dostava.id_klijenta,
+              statusDostave: "NA ČEKANJU",
+              vozac: state.izabraniVozaci[dostava.id_klijenta].id,
             };
-            // var docRef = doc(collection(db, "Dostave"));
-            // console.log(toRaw(dostava));
-            // batch.set(docRef, toRaw(dostava));
+            var docRef = doc(collection(db, "Dostave"));
+            batch.set(docRef, toRaw(newDoc));
           }
-          // await batch.commit();
+          await batch.commit();
+          state.loading = false;
+          state.prompt = false;
         }
       } else if (state.mode === "manual") {
         const formIsValid = await v$.$validate();
@@ -503,12 +505,13 @@ export default {
       querySnapshot.forEach(async (doc) => {
         let data = doc.data();
         let vozac = await pronadjiVozacaZaKlijenta(data.vozac);
-        state.izabraniVozaci[uid] = {
-          id: doc.id ? doc.id : "",
+        let noviVozac = {
+          id: vozac.id ? vozac.id : "",
           ime: vozac.ime ? vozac.ime : "",
           brojTelefona: vozac.brojTelefona ? vozac.brojTelefona : "",
         };
         state.loading = false;
+        state.izabraniVozaci[uid] = noviVozac;
       });
     };
     // za automatsko generiranje dostava, prolazi kroz klijente i za svakog poziva funckiju koja trazi prethodne dostave
@@ -517,9 +520,6 @@ export default {
       state.autoGeneriraneDostave = [];
       for (const klijent of state.klijenti) {
         await pronadjiPrethodneDostaveKlijenta(klijent.id);
-        const id_vozaca = state.izabraniVozaci[klijent.id]
-          ? state.izabraniVozaci[klijent.id].id
-          : test;
         state.autoGeneriraneDostave.push({
           brojPaketa: klijent.brojPaketa,
           datumDostave: new Date(props.izabraniDatum),
@@ -527,7 +527,7 @@ export default {
           adresa: klijent.adresa,
           id_klijenta: klijent.id,
           imeKlijenta: klijent.ime,
-          vozac: id_vozaca,
+          vozac: "",
           dioGrada: klijent.dioGrada,
         });
       }
@@ -579,7 +579,7 @@ export default {
     const dodajVozacaNaGeneriranuVoznju = (vozac) => {
       const edit = state.autoGeneriraneDostave.map((dostava) => {
         if (dostava.id_klijenta === vozac.row.id_klijenta) {
-          dostava.vozac = state.izabraniVozaci[vozac.row.id_klijenta];
+          dostava.vozac = state.izabraniVozaci[vozac.row.id_klijenta].id;
         }
         return dostava;
       });

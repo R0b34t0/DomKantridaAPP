@@ -8,7 +8,7 @@ const routes = [
       {
         path: "dostave",
         component: () => import("pages/Dostave.vue"),
-        meta: { requiresAuth: true },
+        // meta: { requiresAuth: true },
       },
     ],
   },

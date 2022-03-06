@@ -10,11 +10,29 @@
           </q-avatar>
           Dom Kantrida
         </q-toolbar-title>
+        <div v-if="state.user">
+          {{ state.user.email }}
+          <q-avatar
+            v-if="state.collectionUser"
+            color="orange"
+            text-color="white"
+            >{{
+              state.collectionUser.ime.charAt(0) +
+              state.collectionUser.prezime.charAt(0)
+            }}</q-avatar
+          >
+        </div>
       </q-toolbar>
     </q-header>
 
     <q-drawer show-if-above v-model="leftDrawerOpen" side="left" bordered>
       <q-list padding class="menu-list">
+        <q-item clickable v-ripple to="/">
+          <q-item-section avatar>
+            <q-icon name="dashboard" />
+          </q-item-section>
+          <q-item-section> Nadzorna ploča </q-item-section>
+        </q-item>
         <q-item clickable v-ripple to="/korisnici">
           <q-item-section avatar>
             <q-icon name="manage_accounts" />
@@ -37,12 +55,12 @@
             <q-side-link item>Klijenti</q-side-link></q-item-section
           >
         </q-item>
-        <q-item clickable v-ripple @click="logout()">
+        <q-item v-if="state.user" clickable v-ripple @click="logout()">
           <q-item-section avatar>
-            <q-icon name="people" />
+            <q-icon name="logout" />
           </q-item-section>
           <q-item-section>
-            <q-side-link item>Logout</q-side-link></q-item-section
+            <q-side-link item>Odjava</q-side-link></q-item-section
           >
         </q-item>
       </q-list>
@@ -55,32 +73,65 @@
 </template>
 
 <script>
-import { ref } from "vue";
-import { getAuth, signOut } from "firebase/auth";
-const auth = getAuth();
+import { ref, onMounted, reactive } from "vue";
+import { useRouter } from "vue-router";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "../boot/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export default {
   setup() {
+    const state = reactive({
+      user: null,
+      collectionUser: null,
+    });
+    const router = useRouter();
     const leftDrawerOpen = ref(true);
+
+    const logout = () => {
+      signOut(auth)
+        .then(() => {
+          router.push("/login");
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    };
+
+    const getUserData = async (uid) => {
+      const docRef = doc(db, "Korisnici", uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        state.collectionUser = docSnap.data();
+      } else {
+        alert("Korisnik nije pronadjen! Molimo da se ponovno prijavite!");
+        router.push("/login");
+      }
+    };
+    //we can use this data to later hide routes for admin/vozac
+    const checkAuthState = async () => {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          state.user = user;
+          getUserData(user.uid);
+        } else {
+          router.push("/login");
+        }
+      });
+    };
+
+    onMounted(() => {
+      checkAuthState();
+    });
 
     return {
       leftDrawerOpen,
       toggleLeftDrawer() {
         leftDrawerOpen.value = !leftDrawerOpen.value;
       },
+      logout,
+      state,
     };
-  },
-  methods: {
-    logout() {
-      signOut(auth)
-        .then(() => {
-          // Sign-out successful.
-          this.$router.push("/login");
-        })
-        .catch((error) => {
-          // An error happened.
-        });
-    },
   },
 };
 </script>

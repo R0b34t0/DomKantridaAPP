@@ -1,180 +1,350 @@
 <template>
   <div>
-    <q-btn color="primary" label="Dodaj" @click="handleClick" />
-    <q-dialog v-model="prompt" persistent wid>
+    <q-btn color="primary" label="Dodaj" icon="add" @click="handleClick" />
+    <q-dialog v-model="state.prompt" persistent wid>
       <q-card style="min-width: 500px">
-        <q-form style="width: 100%" @submit.stop="onSubmit">
+        <q-form style="width: 100%" @submit.stop="onSubmit(v$)">
           <q-card-section class="q-pt-none">
-            <h6>Dodaj korisnika</h6>
+            <h5>
+              {{ props.activeEdit ? "Uredi korisnika" : "Novi korisnik" }}
+            </h5>
             <q-input
               class="input-field"
               outlined
-              v-model="korisnik.ime"
+              v-model="state.ime"
               label="Ime"
-              :error="v$.korisnik.ime.$dirty && korisnik.ime"
+              :error="v$.ime.$dirty && state.ime"
             />
-            <div class="error" v-if="v$.korisnik.ime.$error">
-              Ime je obavezno polje.
+            <div class="error" v-if="v$.ime.$error">
+              {{ v$.ime.$errors[0].$message }}
             </div>
             <q-input
               class="input-field"
               outlined
-              v-model="korisnik.prezime"
+              v-model="state.prezime"
               label="Prezime"
-              :error="v$.korisnik.prezime.$dirty && korisnik.prezime"
+              :error="v$.prezime.$dirty && state.prezime"
             />
-            <div class="error" v-if="v$.korisnik.prezime.$error">
-              Prezime je obavezno polje.
+            <div class="error" v-if="v$.prezime.$error">
+              {{ v$.prezime.$errors[0].$message }}
             </div>
 
             <q-input
               class="input-field"
               outlined
-              v-model="korisnik.OIB"
+              v-model="state.OIB"
               label="OIB"
-              :error="v$.korisnik.OIB.$dirty && korisnik.OIB"
+              :error="v$.OIB.$dirty && state.OIB"
             />
-            <div class="error" v-if="v$.korisnik.OIB.$error">
-              OIB mora sadržavati 11 znakova.
+            <div class="error" v-if="v$.OIB.$error">
+              {{ v$.OIB.$errors[0].$message }}
             </div>
 
             <q-input
               class="input-field"
               outlined
-              v-model="korisnik.email"
+              v-model="state.email"
               label="Email"
-              :error="v$.korisnik.email.$dirty && korisnik.email"
+              :disable="props.activeEdit"
+              :error="v$.email.$dirty && state.email"
             />
-            <div class="error" v-if="v$.korisnik.email.$error">
-              Email mora biti u obliku primjer@email.com.
+            <div class="error" v-if="v$.email.$error">
+              {{ v$.email.$errors[0].$message }}
             </div>
 
             <q-input
               class="input-field"
               outlined
-              v-model="korisnik.adresa"
+              v-model="state.adresa"
               label="Adresa"
-              :error="v$.korisnik.adresa.$dirty && korisnik.adresa"
+              :error="v$.adresa.$dirty && state.adresa"
             />
-            <div class="error" v-if="v$.korisnik.adresa.$error">
-              Adresa je obavezno polje.
+            <div class="error" v-if="v$.adresa.$error">
+              {{ v$.adresa.$errors[0].$message }}
             </div>
 
             <q-input
               class="input-field"
               outlined
-              v-model="korisnik.brojTelefona"
+              v-model="state.brojTelefona"
               label="Broj telefona"
-              :error="v$.korisnik.brojTelefona.$dirty && korisnik.brojTelefona"
+              mask="phone"
+              :error="v$.brojTelefona.$dirty && state.brojTelefona"
             />
-            <div class="error" v-if="v$.korisnik.brojTelefona.$error">
-              Broj telefona je obavezno polje.
+            <div class="error" v-if="v$.brojTelefona.$error">
+              {{ v$.brojTelefona.$errors[0].$message }}
             </div>
 
-            <q-input
+            <q-select
               class="input-field"
               outlined
-              v-model="korisnik.rola"
+              v-model="state.rola"
               label="Rola"
-              :error="v$.korisnik.rola.$dirty && korisnik.rola"
+              :error="v$.rola.$dirty && state.rola"
+              :options="selectOptions"
             />
-            <div class="error" v-if="v$.korisnik.rola.$error">
-              Rola je obavezno polje.
+            <div class="error" v-if="v$.rola.$error">
+              {{ v$.rola.$errors[0].$message }}
             </div>
 
             <q-input
+              v-if="!props.activeEdit"
               class="input-field"
               outlined
-              v-model="korisnik.password"
-              label="Password"
+              v-model="state.password"
+              label="Lozinka"
               type="password"
-              :error="v$.korisnik.password.$dirty && korisnik.password"
+              :error="v$.password.$dirty && state.password"
             />
-            <div class="error" v-if="v$.korisnik.password.$error">
-              Lozinka je obavezno polje.
+
+            <div class="error" v-if="v$.password.$error">
+              {{ v$.password.$errors[0].$message }}
             </div>
           </q-card-section>
           <q-card-actions align="right" class="text-primary">
-            <q-btn label="Odustani" flat v-close-popup />
-            <q-btn color="primary" label="Dodaj korisnika" type="submit" />
+            <q-btn label="Odustani" flat @click="handleClose(v$)" />
+            <q-btn
+              color="primary"
+              :label="props.activeEdit ? 'Spremi promjene' : 'Dodaj korisnika'"
+              type="submit"
+            />
           </q-card-actions>
         </q-form>
       </q-card>
+      <div v-if="state.loading" class="loading">
+        <h6 style="margin: 10px 0px 20px 0px">Molimo pricekajte...</h6>
+        <q-spinner color="primary" size="3em" />
+      </div>
     </q-dialog>
   </div>
 </template>
 <script>
-import { defineComponent } from "vue";
+import { reactive, watch } from "vue";
+import { initializeApp, deleteApp } from "firebase/app";
 import useVuelidate from "@vuelidate/core";
+import {
+  createUserWithEmailAndPassword,
+  signOut,
+  getAuth,
+} from "firebase/auth";
+
 import {
   required,
   email,
   minLength,
   maxLength,
   numeric,
+  helpers,
+  requiredIf,
 } from "@vuelidate/validators";
 
-export default defineComponent({
+import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { db, auth, firebaseConfig } from "src/boot/firebase";
+
+export default {
   name: "UnosKorisnika",
-  data() {
-    return {
-      v$: useVuelidate(),
+  props: [
+    "activeEdit",
+    "ime",
+    "prezime",
+    "adresa",
+    "OIB",
+    "email",
+    "brojTelefona",
+    "rola",
+    "odabraniKorisnik",
+    "editCompleted",
+  ],
+  setup(props) {
+    const state = reactive({
+      activeEdit: props.activeEdit,
       prompt: false,
-      korisnik: {
-        ime: "",
-        prezime: "",
-        OIB: "",
-        email: "",
-        adresa: "",
-        brojTelefona: "",
-        rola: "",
-        password: "",
-      },
-    };
-  },
-  validations() {
-    return {
-      korisnik: {
-        ime: { required },
-        prezime: { required },
-        OIB: {
-          required,
-          numeric,
-          minLength: minLength(11),
-          maxLength: maxLength(11),
-        },
-        email: { required, email },
-        adresa: { required },
-        brojTelefona: { required, numeric },
-        rola: { required },
-        password: { required },
-      },
-    };
-  },
-  methods: {
-    handleClick() {
-      this.prompt = true;
-    },
-    async onSubmit() {
-      const isFormCorrect = await this.v$.$validate();
-      console.log(this.v$);
-      if (!isFormCorrect) {
-        alert("nije dobro");
-      } else {
-        alert("dobro je");
+      ime: "",
+      prezime: "",
+      OIB: "",
+      email: "",
+      adresa: "",
+      brojTelefona: "",
+      rola: "VOZAC",
+      password: "",
+      loading: false,
+      uid: null,
+    });
+
+    watch(
+      () => props.activeEdit,
+      () => {
+        if (props.activeEdit) {
+          (state.prompt = true),
+            (state.ime = props.odabraniKorisnik.ime),
+            (state.prezime = props.odabraniKorisnik.prezime),
+            (state.OIB = props.odabraniKorisnik.OIB),
+            (state.adresa = props.odabraniKorisnik.adresa),
+            (state.email = props.odabraniKorisnik.email),
+            (state.brojTelefona = props.odabraniKorisnik.brojTelefona),
+            (state.rola = props.odabraniKorisnik.rola);
+        } else {
+          (state.ime = ""),
+            (state.prezime = ""),
+            (state.OIB = ""),
+            (state.adresa = ""),
+            (state.email = ""),
+            (state.brojTelefona = ""),
+            (state.rola = "");
+        }
       }
-    },
+    );
+
+    const selectOptions = ["ADMIN", "VOZAC"];
+    const rules = {
+      ime: { required: helpers.withMessage("Ime je obavezno polje", required) },
+      prezime: {
+        required: helpers.withMessage("Prezime je obavezno polje", required),
+      },
+      OIB: {
+        required: helpers.withMessage("OIB je obavezno polje", required),
+        numeric: helpers.withMessage(
+          "OIB mora biti numerička vrijednost",
+          numeric
+        ),
+        minLength: helpers.withMessage(
+          "OIB mora sadržavati 11 znakova",
+          minLength(11)
+        ),
+        maxLength: helpers.withMessage(
+          "OIB mora sadržavati 11 znakova",
+          maxLength(11)
+        ),
+      },
+      email: {
+        required: helpers.withMessage("Email je obavezno polje", required),
+        email: helpers.withMessage(
+          "Email mora biti u obliku primjer@email.com",
+          email
+        ),
+      },
+      adresa: {
+        required: helpers.withMessage("Adresa je obavezno polje", required),
+      },
+      brojTelefona: {
+        required: helpers.withMessage(
+          "Broj telefona je obavezno polje",
+          required
+        ),
+      },
+      rola: {
+        required: helpers.withMessage(
+          "Morate odabrati korisničku rolu",
+          required
+        ),
+      },
+      password: {
+        required: helpers.withMessage(
+          "Lozinka je obavezno polje",
+          requiredIf(() => {
+            return !props.activeEdit;
+          })
+        ),
+      },
+    };
+    const v$ = useVuelidate(rules, state);
+
+    const handleClick = () => {
+      state.prompt = true;
+    };
+    // kad se zatvori modalni prozor, ocisti podatke iz formi
+    const handleClose = (v$) => {
+      state.prompt = false;
+      state.loading = false;
+      state.ime = "";
+      state.prezime = "";
+      state.OIB = "";
+      state.email = "";
+      state.adresa = "";
+      state.brojTelefona = "";
+      state.rola = "VOZAC";
+      v$.$reset();
+    };
+
+    const onSubmit = async (v$) => {
+      // if form passes validation, call registerNewUser
+      const formIsValid = await v$.$validate();
+      if (formIsValid) {
+        if (!props.activeEdit) {
+          registerNewUser(state.email, state.password);
+        } else {
+          state.loading = true;
+          const docRef = doc(db, "Korisnici", props.odabraniKorisnik.id);
+          await updateDoc(docRef, {
+            ime: state.ime,
+            prezime: state.prezime,
+            OIB: state.OIB,
+            email: state.email,
+            adresa: state.adresa,
+            brojTelefona: state.brojTelefona,
+            rola: state.rola,
+            deleted: false,
+          });
+          state.loading = false;
+          state.prompt = false;
+          props.editCompleted();
+        }
+      }
+    };
+    // initialize and delete app for creating users
+    const registerNewUser = async (email, password) => {
+      let secondaryApp = initializeApp(firebaseConfig, "secondary");
+      let secondaryAuth = getAuth(secondaryApp);
+      state.loading = true;
+
+      await createUserWithEmailAndPassword(secondaryAuth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          state.uid = user.uid;
+          signOut(secondaryAuth).then(() => {
+            console.log("signed out new user on secondary");
+            deleteApp(secondaryApp).then(() => {
+              console.log("secondary app deleted");
+              addUserToCollection();
+            });
+          });
+        })
+        .catch((error) => {
+          console.log(error.message);
+        });
+    };
+    // add new user to Korisnici collection with same uid from firebase users
+    const addUserToCollection = async () => {
+      await setDoc(doc(db, "Korisnici", state.uid), {
+        ime: state.ime,
+        prezime: state.prezime,
+        OIB: state.OIB,
+        email: state.email,
+        adresa: state.adresa,
+        brojTelefona: state.brojTelefona,
+        rola: state.rola,
+        deleted: false,
+      });
+      console.log("user added to collection");
+      state.prompt = false;
+      state.loading = false;
+      state.ime = "";
+      state.prezime = "";
+      state.OIB = "";
+      state.email = "";
+      state.adresa = "";
+      state.brojTelefona = "";
+      state.rola = "VOZAC";
+    };
+    return {
+      state,
+      props,
+      v$,
+      handleClick,
+      handleClose,
+      onSubmit,
+      selectOptions,
+    };
   },
-  mounted() {},
-});
+};
 </script>
-<style>
-.input-field {
-  padding-bottom: 10px;
-}
-.error {
-  color: red;
-  font-size: 12px;
-  margin: -10px 0px 10px 10px;
-}
-</style>

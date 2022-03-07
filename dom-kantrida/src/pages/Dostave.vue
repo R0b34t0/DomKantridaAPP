@@ -11,7 +11,7 @@
           style="color: #1976d2"
         >
           <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-            <q-date v-model="state.izabraniDatum" minimal @change="getData()"
+            <q-date v-model="state.izabraniDatum" minimal
               ><div class="row items-center justify-end q-gutter-sm">
                 <q-btn label="Cancel" color="primary" flat v-close-popup />
                 <q-btn
@@ -190,15 +190,17 @@ export default {
         where("datumDostave", ">=", new Date(state.izabraniDatum)),
         where("datumDostave", "<", dodajDanZaFilter(datum))
       );
+      state.dostave = [];
       state.loading = true;
       unsub = onSnapshot(q, (querySnapshot) => {
         state.dostave = [];
+        let dostava = {};
         querySnapshot.forEach(async (doc) => {
           let data = doc.data();
           let klijent = await getUserData(data.klijent);
           let ugovor = await getUgovor(data.klijent);
           let vozac = await getDataVozaci(data.vozac, data.klijent);
-          state.dostave.push({
+          dostava = {
             id: doc.id,
             brojPaketa: ugovor ? ugovor.zaduzeniRuckovi : "Nema podatka",
             vrstaPrehrane: ugovor ? ugovor.vrstaPrehrane : "Nema podatka",
@@ -214,9 +216,9 @@ export default {
             klijent: klijent ? klijent.ime : "Nema podataka",
             vozac: vozac ? vozac : "Nema podatka",
             brojTelefona: vozac ? vozac.brojTelefona : "Nema podatka",
-          });
+          };
+          state.dostave.push(dostava);
         });
-
         state.loading = false;
       });
     };
@@ -287,8 +289,7 @@ export default {
       return noviDatum;
     };
     //kod promjene datuma ponovi query
-    const onDateChange = () => {
-      state.dostave = [];
+    const onDateChange = async () => {
       const datum = new Date(state.izabraniDatum);
       datum.setHours(1, 0, 0);
       if (datum.getDay() === 0 || datum <= today) {
@@ -296,7 +297,7 @@ export default {
       } else {
         state.disableBtn = false;
       }
-      getData(state.izabraniDatum);
+      await getData(state.izabraniDatum);
     };
     //
     const editVozaca = async (vozac) => {
@@ -320,7 +321,6 @@ export default {
     };
     //
     onMounted(() => {
-      getData(state.izabraniDatum);
       getVozaci();
       onDateChange(today);
     });

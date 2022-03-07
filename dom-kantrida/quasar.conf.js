@@ -130,7 +130,7 @@ module.exports = configure(function (ctx) {
     // https://quasar.dev/quasar-cli/developing-pwa/configuring-pwa
     pwa: {
       workboxPluginMode: "GenerateSW", // 'GenerateSW' or 'InjectManifest'
-      workboxOptions: {}, // only for GenerateSW
+      workboxOptions: { skipWaiting: true, clientsClaim: true }, // only for GenerateSW
 
       // for the custom service worker ONLY (/src-pwa/custom-service-worker.[js|ts])
       // if using workbox in InjectManifest mode
@@ -141,21 +141,21 @@ module.exports = configure(function (ctx) {
       },
 
       manifest: {
-        name: `Quasar App`,
-        short_name: `Quasar App`,
-        description: `A Quasar Framework app`,
+        name: `Dom Kantrida`,
+        short_name: `Dom Kantrida`,
+        description: `Aplikacija za pracenje dostava`,
         display: "standalone",
         orientation: "portrait",
         background_color: "#ffffff",
         theme_color: "#027be3",
         icons: [
           {
-            src: "icons/icon-128x128.png",
+            src: "icons/image843.png",
             sizes: "128x128",
             type: "image/png",
           },
           {
-            src: "icons/icon-192x192.png",
+            src: "icons/image844.png",
             sizes: "192x192",
             type: "image/png",
           },

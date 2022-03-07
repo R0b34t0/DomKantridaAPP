@@ -55,6 +55,14 @@
             <q-side-link item>Klijenti</q-side-link></q-item-section
           >
         </q-item>
+        <q-item clickable v-ripple to="/ugovori">
+          <q-item-section avatar>
+            <q-icon name="receipt" />
+          </q-item-section>
+          <q-item-section>
+            <q-side-link item>Ugovori</q-side-link></q-item-section
+          >
+        </q-item>
         <q-item v-if="state.user" clickable v-ripple @click="logout()">
           <q-item-section avatar>
             <q-icon name="logout" />

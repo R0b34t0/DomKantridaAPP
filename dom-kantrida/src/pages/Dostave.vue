@@ -167,12 +167,13 @@ export default {
     // query za vozace koji se prikazuju u select-u
     const getVozaci = async () => {
       state.loading = true;
+      state.vozaci = [];
       const q = query(
         collection(db, "Korisnici"),
         where("rola", "==", "VOZAC")
       );
       const querySnapshot = await getDocs(q);
-      state.vozaci = [];
+
       querySnapshot.forEach((doc) => {
         let data = doc.data();
         state.vozaci.push({
@@ -269,7 +270,6 @@ export default {
           ime: data.ime + " " + data.prezime,
           brojTelefona: data.brojTelefona,
         };
-        state.vozaci.push(vozac);
         return vozac;
       } else {
         console.log("Vozac nije pronadjen!");

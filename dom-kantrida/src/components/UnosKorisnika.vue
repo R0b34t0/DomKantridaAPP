@@ -5,7 +5,9 @@
       <q-card style="min-width: 500px">
         <q-form style="width: 100%" @submit.stop="onSubmit(v$)">
           <q-card-section class="q-pt-none">
-            <h5>Novi korisnik</h5>
+            <h5>
+              {{ props.activeEdit ? "Uredi korisnika" : "Novi korisnik" }}
+            </h5>
             <q-input
               class="input-field"
               outlined
@@ -43,6 +45,7 @@
               outlined
               v-model="state.email"
               label="Email"
+              :disable="props.activeEdit"
               :error="v$.email.$dirty && state.email"
             />
             <div class="error" v-if="v$.email.$error">
@@ -85,6 +88,7 @@
             </div>
 
             <q-input
+              v-if="!props.activeEdit"
               class="input-field"
               outlined
               v-model="state.password"
@@ -98,8 +102,12 @@
             </div>
           </q-card-section>
           <q-card-actions align="right" class="text-primary">
-            <q-btn label="Odustani" flat v-close-popup />
-            <q-btn color="primary" label="Dodaj korisnika" type="submit" />
+            <q-btn label="Odustani" flat @click="handleClose(v$)" />
+            <q-btn
+              color="primary"
+              :label="props.activeEdit ? 'Spremi promjene' : 'Dodaj korisnika'"
+              type="submit"
+            />
           </q-card-actions>
         </q-form>
       </q-card>
@@ -111,7 +119,7 @@
   </div>
 </template>
 <script>
-import { reactive } from "vue";
+import { reactive, watch } from "vue";
 import { initializeApp, deleteApp } from "firebase/app";
 import useVuelidate from "@vuelidate/core";
 import {
@@ -127,16 +135,29 @@ import {
   maxLength,
   numeric,
   helpers,
+  requiredIf,
 } from "@vuelidate/validators";
 
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { db, auth, firebaseConfig } from "src/boot/firebase";
-import { phoneRegex } from "../utils/regex";
 
 export default {
   name: "UnosKorisnika",
-  setup() {
+  props: [
+    "activeEdit",
+    "ime",
+    "prezime",
+    "adresa",
+    "OIB",
+    "email",
+    "brojTelefona",
+    "rola",
+    "odabraniKorisnik",
+    "editCompleted",
+  ],
+  setup(props) {
     const state = reactive({
+      activeEdit: props.activeEdit,
       prompt: false,
       ime: "",
       prezime: "",
@@ -149,8 +170,32 @@ export default {
       loading: false,
       uid: null,
     });
+
+    watch(
+      () => props.activeEdit,
+      () => {
+        if (props.activeEdit) {
+          (state.prompt = true),
+            (state.ime = props.odabraniKorisnik.ime),
+            (state.prezime = props.odabraniKorisnik.prezime),
+            (state.OIB = props.odabraniKorisnik.OIB),
+            (state.adresa = props.odabraniKorisnik.adresa),
+            (state.email = props.odabraniKorisnik.email),
+            (state.brojTelefona = props.odabraniKorisnik.brojTelefona),
+            (state.rola = props.odabraniKorisnik.rola);
+        } else {
+          (state.ime = ""),
+            (state.prezime = ""),
+            (state.OIB = ""),
+            (state.adresa = ""),
+            (state.email = ""),
+            (state.brojTelefona = ""),
+            (state.rola = "");
+        }
+      }
+    );
+
     const selectOptions = ["ADMIN", "VOZAC"];
-    const phoneRegexRule = helpers.regex(phoneRegex);
     const rules = {
       ime: { required: helpers.withMessage("Ime je obavezno polje", required) },
       prezime: {
@@ -186,10 +231,6 @@ export default {
           "Broj telefona je obavezno polje",
           required
         ),
-        // phoneRegex: helpers.withMessage(
-        //   "Broj telefona mora biti u obliku 051 123 456",
-        //   phoneRegexRule
-        // ),
       },
       rola: {
         required: helpers.withMessage(
@@ -198,7 +239,12 @@ export default {
         ),
       },
       password: {
-        required: helpers.withMessage("Lozinka je obavezno polje", required),
+        required: helpers.withMessage(
+          "Lozinka je obavezno polje",
+          requiredIf(() => {
+            return !props.activeEdit;
+          })
+        ),
       },
     };
     const v$ = useVuelidate(rules, state);
@@ -206,12 +252,43 @@ export default {
     const handleClick = () => {
       state.prompt = true;
     };
+    // kad se zatvori modalni prozor, ocisti podatke iz formi
+    const handleClose = (v$) => {
+      state.prompt = false;
+      state.loading = false;
+      state.ime = "";
+      state.prezime = "";
+      state.OIB = "";
+      state.email = "";
+      state.adresa = "";
+      state.brojTelefona = "";
+      state.rola = "VOZAC";
+      v$.$reset();
+    };
 
     const onSubmit = async (v$) => {
       // if form passes validation, call registerNewUser
       const formIsValid = await v$.$validate();
       if (formIsValid) {
-        registerNewUser(state.email, state.password);
+        if (!props.activeEdit) {
+          registerNewUser(state.email, state.password);
+        } else {
+          state.loading = true;
+          const docRef = doc(db, "Korisnici", props.odabraniKorisnik.id);
+          await updateDoc(docRef, {
+            ime: state.ime,
+            prezime: state.prezime,
+            OIB: state.OIB,
+            email: state.email,
+            adresa: state.adresa,
+            brojTelefona: state.brojTelefona,
+            rola: state.rola,
+            deleted: false,
+          });
+          state.loading = false;
+          state.prompt = false;
+          props.editCompleted();
+        }
       }
     };
     // initialize and delete app for creating users
@@ -246,27 +323,25 @@ export default {
         adresa: state.adresa,
         brojTelefona: state.brojTelefona,
         rola: state.rola,
+        deleted: false,
       });
       console.log("user added to collection");
       state.prompt = false;
       state.loading = false;
-      state = {
-        ...state,
-        ime: "",
-        prezime: "",
-        OIB: "",
-        email: "",
-        adresa: "",
-        brojTelefona: "",
-        rola: "VOZAC",
-        password: "",
-      };
+      state.ime = "";
+      state.prezime = "";
+      state.OIB = "";
+      state.email = "";
+      state.adresa = "";
+      state.brojTelefona = "";
+      state.rola = "VOZAC";
     };
-
     return {
       state,
+      props,
       v$,
       handleClick,
+      handleClose,
       onSubmit,
       selectOptions,
     };

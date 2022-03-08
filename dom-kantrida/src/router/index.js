@@ -40,7 +40,7 @@ export default route(function (/* { store, ssrContext } */) {
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
     const isAuthenticated = auth.currentUser;
     if (requiresAuth && !isAuthenticated) {
-      next("/login");
+      next("/");
       alert("Prijavite se kako bi pristupili navedenom");
     } else {
       next();

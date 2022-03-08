@@ -89,7 +89,7 @@ export default {
         .then(async (userCredential) => {
           const user = userCredential.user;
           const podaci = await getUserData(user.uid);
-          console.log(podaci);
+
           if (podaci.rola === "VOZAC") {
             router.push("/popisdostava");
           } else {

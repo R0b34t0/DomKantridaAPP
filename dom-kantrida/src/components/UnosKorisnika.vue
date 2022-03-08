@@ -143,18 +143,7 @@ import { db, auth, firebaseConfig } from "src/boot/firebase";
 
 export default {
   name: "UnosKorisnika",
-  props: [
-    "activeEdit",
-    "ime",
-    "prezime",
-    "adresa",
-    "OIB",
-    "email",
-    "brojTelefona",
-    "rola",
-    "odabraniKorisnik",
-    "editCompleted",
-  ],
+  props: ["activeEdit", "odabraniKorisnik", "editCompleted"],
   setup(props) {
     const state = reactive({
       activeEdit: props.activeEdit,

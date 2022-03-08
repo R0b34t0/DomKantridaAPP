@@ -6,15 +6,17 @@ const routes = [
       {
         path: "",
         component: () => import("pages/Index.vue"),
+        meta: { requiresAuth: true },
       },
       {
         path: "Korisnici",
         component: () => import("pages/Korisnici.vue"),
+        meta: { requiresAuth: true },
       },
       {
         path: "dostave",
         component: () => import("pages/Dostave.vue"),
-        // meta: { requiresAuth: true },
+        meta: { requiresAuth: true },
       },
       {
         path: "klijenti",
@@ -44,6 +46,7 @@ const routes = [
       {
         path: "",
         component: () => import("pages/PopisDostava.vue"),
+        meta: { requiresAuth: true },
       },
     ],
   },

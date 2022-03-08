@@ -263,6 +263,8 @@ export default {
       state.adresa = "";
       state.brojTelefona = "";
       state.rola = "VOZAC";
+      state.password = "";
+      props.editCompleted();
       v$.$reset();
     };
 

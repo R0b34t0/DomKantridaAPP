@@ -315,19 +315,7 @@ import {
 } from "firebase/firestore";
 import useVuelidate from "@vuelidate/core";
 import { required, helpers } from "@vuelidate/validators";
-/*=
-TODO: KORISNICI
-3. dodat mogucnost promjene lozinke za korisnike
-4. mogucnost ispisa podataka o korisniku
-TODO: ALL
-1. dodaj blokiranje ruta
-2. dodaj grafikone na nadzornu plocu i mogucnost pregleda prijavljenih kasnjenja za odredjeni dan i popisa sa zadnjom dostavljenom dostavom po vozacu i vremenom dostave
-TODO: MOBILNA APLIKACIJA
-1. pregled dostava prema prijavljenom vozacu - istok/zapad
-2. responsive design - pwa
-3. mogucnost potvrde dostave ili oznacavanja sa 'nije dostavljeno'
-4. mogucnost prijave kasnjenja u svakom trenutku
-*/
+
 export default {
   name: "UnosDostave",
   props: ["dostave", "izabraniDatum", "disableBtn", "brojDostava"],

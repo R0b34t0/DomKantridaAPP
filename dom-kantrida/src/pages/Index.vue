@@ -1,10 +1,8 @@
 <template>
-  <q-page class="flex flex-center">
-    <img
-      alt="Quasar logo"
-      src="~assets/quasar-logo-vertical.svg"
-      style="width: 200px; height: 200px"
-    />
+  <q-page class="full-width row">
+    <div class="col-6">a</div>
+    <div class="col-6">b</div>
+    <div class="col-12">12</div>
   </q-page>
 </template>
 
@@ -13,5 +11,9 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
   name: "PageIndex",
+  setup() {
+    const columnsDostave = [];
+    return null;
+  },
 });
 </script>

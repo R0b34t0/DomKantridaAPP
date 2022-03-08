@@ -1,10 +1,25 @@
 <template>
-  <q-page>
+  <q-page
+    ><q-banner
+      v-for="kasnjenje in state.kasnjenje"
+      :key="kasnjenje.id"
+      rounded
+      inline-actions
+      class="text-white bg-red"
+      style="margin: 10px 10px 0px 10px"
+    >
+      <template v-slot:avatar>
+        <q-icon name="warning" color="white" />
+      </template>
+      Lokacija: <strong>{{ kasnjenje.lokacija }}</strong
+      ><br />
+      Opis: {{ kasnjenje.razlogKasnjenja }}
+    </q-banner>
     <q-scroll-area
       style="height: calc(100vh - 50px); width: 100vw; padding-bottom: 50px"
     >
       <CardDostava
-        v-for="dostava in state.dostave"
+        v-for="dostava in filterDostava()"
         :key="dostava.id"
         :dostava="dostava"
       />
@@ -38,12 +53,13 @@
     <PrijavaKasnjenja
       :prijavaKasnjenja="state.prijavaKasnjenja"
       :kasnjenjeCompleted="kasnjenjeCompleted"
+      :uid="user && user.uid"
     />
   </q-page>
 </template>
 <script>
 import { onMounted, onUnmounted, reactive, watch } from "vue";
-import { db } from "src/boot/firebase";
+import { db, auth } from "src/boot/firebase";
 import {
   collection,
   query,
@@ -52,12 +68,12 @@ import {
   where,
   onSnapshot,
   doc,
-  updateDoc,
 } from "firebase/firestore";
 import { formatDateDisplay } from "../utils/formatDate";
 
 import CardDostava from "../components/CardDostava.vue";
 import PrijavaKasnjenja from "../components/PrijavaKasnjenja.vue";
+import { onAuthStateChanged } from "@firebase/auth";
 
 export default {
   name: "PrikazDostava",
@@ -73,17 +89,20 @@ export default {
       loading: false,
       disableBtn: false,
       prijavaKasnjenja: false,
+      kasnjenje: [],
+      user: {},
     });
 
     let unsub;
+    let unsub1;
 
     //query za dostave na odabrani datum
     const getData = async () => {
       const q = query(
         collection(db, "Dostave"),
         where("datumDostave", ">=", oduzmiDanZaFilter(today)),
-        where("datumDostave", "<", dodajDanZaFilter(today))
-        // where("vozac", "==", "sJCPdGr6NeOY25p5SQyAalY67Xm2")
+        where("datumDostave", "<", dodajDanZaFilter(today)),
+        where("vozac", "==", state.user.uid)
       );
       state.dostave = [];
       state.loading = true;
@@ -94,6 +113,7 @@ export default {
           let data = doc.data();
           let klijent = await getUserData(data.klijent);
           let ugovor = await getUgovor(data.klijent);
+
           if (data.statusDostave === "NA ČEKANJU") {
             dostava = {
               id: doc.id,
@@ -103,6 +123,7 @@ export default {
               id_klijenta: klijent ? klijent.id : "Nema podatka",
               klijent: klijent ? klijent.ime : "Nema podataka",
               brojTelefona: klijent ? klijent.brojTelefona : "Nema podatka",
+              dioGrada: data.odabraniDio ? data.odabraniDio : "ISTOK",
             };
             state.dostave.push(dostava);
           }
@@ -132,17 +153,17 @@ export default {
       const docRef = collection(db, "Ugovori");
       const q = query(docRef, where("klijent", "==", uid));
       const docSnap = await getDocs(q);
-      const datum = new Date(today);
+      const datum = new Date();
       const izabraniDan = datum.getDay();
       let ugovorTest = {};
       docSnap.forEach((doc) => {
         let data = doc.data();
+
         const ugovor = {
           id: doc.id,
           vrstaPrehrane: data.vrstaPrehrane,
           zaduzeniRuckovi: data.zaduzeniRuckovi[izabraniDan],
         };
-
         ugovorTest = ugovor;
       });
       return ugovorTest;
@@ -158,13 +179,67 @@ export default {
       noviDatum.setDate(noviDatum.getDate() + 1);
       return noviDatum;
     };
+    ///
+    const getDataKasnjenja = async () => {
+      const datum = new Date();
+      datum.setHours(0, 0, 0);
+      const q = query(
+        collection(db, "Kasnjenja"),
+        where("datumPrijave", ">=", oduzmiDanZaFilter(datum)),
+        where("datumPrijave", "<", dodajDanZaFilter(datum))
+      );
+      state.kasnjenje = [];
+      state.loading = true;
+
+      unsub1 = onSnapshot(q, (querySnapshot) => {
+        state.kasnjenje = [];
+
+        querySnapshot.forEach(async (doc) => {
+          let data = doc.data();
+
+          if (data.vozac !== state.user.uid) {
+            let datumPrijave = new Date(data.datumPrijave.seconds * 1000);
+            datumPrijave.setMinutes(datumPrijave.getMinutes() + 15);
+            let trenutnoVrijeme = new Date();
+
+            if (datumPrijave > trenutnoVrijeme) {
+              let kasnjenje = {
+                id: doc.id,
+                lokacija: data.lokacija ? data.lokacija : "Nema podatka!",
+                razlogKasnjenja: data.razlogKasnjenja
+                  ? data.razlogKasnjenja
+                  : "Nema podatka!",
+                datumPrijave: data.datumPrijave
+                  ? data.datumPrijave
+                  : "Nema podatka!",
+              };
+              state.kasnjenje.push(kasnjenje);
+            }
+          }
+        });
+        state.loading = false;
+      });
+    };
+
+    const checkAuthState = () => {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          state.user = user;
+          getData();
+          getDataKasnjenja();
+        } else {
+          router.push("/login");
+        }
+      });
+    };
 
     onMounted(() => {
-      getData();
+      checkAuthState();
     });
 
     onUnmounted(() => {
       unsub();
+      unsub1();
     });
 
     const kasnjenjeCompleted = () => {
@@ -183,8 +258,23 @@ export default {
       return formatDateDisplay(date);
     };
 
+    // filtrira dostave na istok i zapad
+    const filterDostava = () => {
+      let dostave = [];
+      state.dostave.filter((dostava) => {
+        if (
+          dostava?.dioGrada?.toUpperCase() ===
+          state.izabraniDioGrada.toUpperCase()
+        ) {
+          dostave.push(dostava);
+        }
+      });
+      return dostave;
+    };
+
     return {
       state,
+      filterDostava,
       formatDateForDisplay,
       kasnjenjeCompleted,
       showMore,

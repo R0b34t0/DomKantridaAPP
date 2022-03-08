@@ -218,6 +218,7 @@ export default {
             vozac: vozac ? vozac : "Nema podatka",
             brojTelefona: vozac ? vozac.brojTelefona : "Nema podatka",
           };
+
           state.dostave.push(dostava);
         });
         state.loading = false;

@@ -116,7 +116,6 @@ export default {
         router.push("/login");
       }
     };
-    //we can use this data to later hide routes for admin/vozac
     const checkAuthState = async () => {
       onAuthStateChanged(auth, (user) => {
         if (user) {

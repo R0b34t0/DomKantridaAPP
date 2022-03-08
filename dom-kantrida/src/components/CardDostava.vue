@@ -52,17 +52,7 @@
 <script>
 import { reactive } from "@vue/reactivity";
 import { db } from "src/boot/firebase";
-import {
-  collection,
-  query,
-  getDoc,
-  getDocs,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc,
-} from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 export default {
   props: ["dostava"],
   setup(props) {
@@ -82,6 +72,7 @@ export default {
       const docRef = doc(db, "Dostave", idDostave);
       await updateDoc(docRef, {
         statusDostave: status === 1 ? "DOSTAVLJENO" : "NIJE DOSTAVLJENO",
+        vrijemeZavrsetkaDostave: new Date(),
       });
     };
     return { state, props, showMore, potvrdiDostavu };

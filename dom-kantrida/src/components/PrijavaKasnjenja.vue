@@ -35,6 +35,7 @@
               class="input-field"
               outlined
               v-model="state.razlogKasnjenja"
+              autogrow
               label="Razlog kašnjenja"
               :error="v$.razlogKasnjenja.$dirty && state.razlogKasnjenja"
             />
@@ -55,16 +56,19 @@
 import { reactive } from "@vue/reactivity";
 import useVuelidate from "@vuelidate/core";
 import { required, helpers } from "@vuelidate/validators";
-import { addDoc, collection, doc, setDoc } from "@firebase/firestore";
+import { addDoc, collection } from "@firebase/firestore";
 import { db, auth } from "src/boot/firebase";
+import { onMounted } from "@vue/runtime-core";
+import { onAuthStateChanged } from "@firebase/auth";
 
 export default {
-  props: ["prijavaKasnjenja", "kasnjenjeCompleted"],
+  props: ["prijavaKasnjenja", "kasnjenjeCompleted", "uid"],
   setup(props) {
     const state = reactive({
       maximizedToggle: true,
       lokacija: "",
       razlogKasnjenja: "",
+      user: "",
     });
     const rules = {
       lokacija: {
@@ -77,6 +81,7 @@ export default {
         ),
       },
     };
+
     const v$ = useVuelidate(rules, state);
 
     const onSubmit = async (v$) => {
@@ -86,6 +91,7 @@ export default {
           lokacija: state.lokacija,
           razlogKasnjenja: state.razlogKasnjenja,
           datumPrijave: new Date(),
+          vozac: state.user.uid,
         });
         handleClose(v$);
       }
@@ -96,6 +102,19 @@ export default {
       props.kasnjenjeCompleted();
       v$.$reset();
     };
+
+    const checkAuthState = () => {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          state.user = user;
+        } else {
+          router.push("/login");
+        }
+      });
+    };
+    onMounted(() => {
+      checkAuthState();
+    });
     return { state, props, v$, onSubmit, handleClose };
   },
 };

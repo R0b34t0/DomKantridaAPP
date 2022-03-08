@@ -60,7 +60,8 @@
 import { reactive } from "vue";
 import { useRouter } from "vue-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../boot/firebase";
+import { db, auth } from "../boot/firebase";
+import { doc, getDoc } from "@firebase/firestore";
 
 export default {
   name: "Login",
@@ -72,11 +73,28 @@ export default {
       isPwd: true,
     });
     const router = useRouter();
+
+    const getUserData = async (uid) => {
+      const docRef = doc(db, "Korisnici", uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      } else {
+        alert("Korisnik nije pronadjen! Molimo da se ponovno prijavite!");
+        router.push("/login");
+      }
+    };
     const login = () => {
       signInWithEmailAndPassword(auth, state.email, state.password)
-        .then((userCredential) => {
+        .then(async (userCredential) => {
           const user = userCredential.user;
-          router.push("/");
+          const podaci = await getUserData(user.uid);
+          console.log(podaci);
+          if (podaci.rola === "VOZAC") {
+            router.push("/popisdostava");
+          } else {
+            router.push("/");
+          }
         })
         .catch((error) => {
           const errorCode = error.code;

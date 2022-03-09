@@ -5,7 +5,7 @@
       color="orange"
       icon="autorenew"
       label="Generiraj"
-      :disable="props.disableBtn || props.dostave.length > 0"
+      :disable="props.disableBtn"
       style="margin-right: 20px"
       @click="handleClickAuto"
     />

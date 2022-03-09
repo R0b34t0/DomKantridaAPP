@@ -117,7 +117,7 @@ export default {
           let data = doc.data();
           let klijent = await getUserData(data.klijent);
           let ugovor = await getUgovor(data.klijent);
-
+          console.log(klijent);
           if (data.statusDostave === "NA ČEKANJU") {
             dostava = {
               id: doc.id,
@@ -127,7 +127,7 @@ export default {
               id_klijenta: klijent ? klijent.id : "Nema podatka",
               klijent: klijent ? klijent.ime : "Nema podataka",
               brojTelefona: klijent ? klijent.brojTelefona : "Nema podatka",
-              dioGrada: data.odabraniDio ? data.odabraniDio : "ISTOK",
+              dioGrada: klijent.dioGrada ? klijent.dioGrada : "ISTOK",
             };
             state.dostave.push(dostava);
           }
@@ -146,6 +146,7 @@ export default {
           ime: data.ime + " " + data.prezime,
           adresa: data.adresa,
           brojTelefona: data.brojTelefona,
+          dioGrada: data.odabraniDio,
         };
         return klijent;
       } else {
@@ -266,7 +267,7 @@ export default {
       let dostave = [];
       state.dostave.filter((dostava) => {
         if (
-          dostava?.dioGrada?.toUpperCase() ===
+          dostava?.dioGrada.toUpperCase() ===
           state.izabraniDioGrada.toUpperCase()
         ) {
           dostave.push(dostava);

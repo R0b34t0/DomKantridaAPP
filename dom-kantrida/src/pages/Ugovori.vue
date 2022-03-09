@@ -87,12 +87,14 @@ const columns = [
     align: "center",
     label: "Ime korisnika",
     field: "ime",
+    sortable: true,
   },
   {
     name: "prezime",
     align: "center",
     label: "Prezime korisnika",
     field: "prezime",
+    sortable: true,
   },
   {
     name: "vrstaPrehrane",
@@ -107,7 +109,7 @@ const columns = [
     label: "Status ugovora",
     align: "center",
     field: "stanjeUgovora",
-    sortable: false,
+    sortable: true,
     // classes: "bg-green-1",
     // trebam skuziti kako osposobiti da se bg mijenja ovisno o vrijednosti
     classes: (stanjeUgovora) =>

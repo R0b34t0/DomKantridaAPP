@@ -246,32 +246,41 @@ export default {
       return new Date(myDate[0], myDate[1] - 1, myDate[2]);
     };
     const onSubmit = async (v$) => {
+      state.ugovorPostoji = false;
       const formIsValid = await v$.$validate();
       let zaduzeniRuckoviArray = state.zaduzeniRuckovi;
       if (formIsValid) {
         // Unos u bazu
-        if (!state.ugovorPostoji && !props.activeEdit) {
-          zaduzeniRuckoviArray = String(zaduzeniRuckoviArray)
-            .split("")
-            .map((zaduzeniRuckoviArray) => {
-              return Number(zaduzeniRuckoviArray);
+        if (!props.activeEdit) {
+          const found = props.aktivniUgovori.find(
+            (element) => element == state.model[2]
+          );
+          if (!found) {
+            state.ugovorPostoji = false;
+          } else state.ugovorPostoji = true;
+          // ako ugovor ne postoji spremamo u bazu
+          if (!state.ugovorPostoji) {
+            zaduzeniRuckoviArray = String(zaduzeniRuckoviArray)
+              .split("")
+              .map((zaduzeniRuckoviArray) => {
+                return Number(zaduzeniRuckoviArray);
+              });
+            zaduzeniRuckoviArray.unshift(0);
+            const docRef = await addDoc(collection(db, "Ugovori"), {
+              vrstaPrehrane: state.vrstaPrehrane,
+              zaduzeniRuckovi: zaduzeniRuckoviArray,
+              datumUkljucivanja: pretvoriDatum(state.datumUkljucivanja),
+              datumZavrsetkaTretmana: pretvoriDatum(
+                state.datumZavrsetkaTretmana
+              ),
+              klijent: state.model[2],
             });
-
-          zaduzeniRuckoviArray.unshift(0);
-
-          const docRef = await addDoc(collection(db, "Ugovori"), {
-            vrstaPrehrane: state.vrstaPrehrane,
-            zaduzeniRuckovi: zaduzeniRuckoviArray,
-            datumUkljucivanja: pretvoriDatum(state.datumUkljucivanja),
-            datumZavrsetkaTretmana: pretvoriDatum(state.datumZavrsetkaTretmana),
-            klijent: state.model[2],
-          });
-
-          state.prompt = false;
-          state.model = "";
-          resetState();
-          v$.$reset();
-          props.editCompleted();
+            state.prompt = false;
+            state.model = "";
+            resetState();
+            v$.$reset();
+            props.editCompleted();
+          }
         } else if (props.activeEdit) {
           // edit
 
@@ -394,19 +403,6 @@ export default {
         this.options.push([doc.data().ime, doc.data().prezime, doc.id]);
       });
     });
-  },
-
-  watch: {
-    model: function () {
-      console.log("aktivirano");
-      const found = this.aktivniUgovori.find(
-        (element) => element == state.model[2]
-      );
-      console.log(found);
-      if (!found) {
-        this.state.ugovorPostoji = false;
-      } else this.state.ugovorPostoji = true;
-    },
   },
 };
 </script>

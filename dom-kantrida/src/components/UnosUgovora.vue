@@ -19,7 +19,7 @@
                   :options="options"
                   @filter="filterFn"
                   @filter-abort="abortFilterFn"
-                  style="width: 250px"
+                  style="width: 400px"
                   hint="With hide-selected and fill-input"
                   :disable="state.editState"
                 >

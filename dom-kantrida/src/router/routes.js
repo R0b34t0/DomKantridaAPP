@@ -9,7 +9,7 @@ const routes = [
         meta: { requiresAuth: true },
       },
       {
-        path: "Korisnici",
+        path: "korisnici",
         component: () => import("pages/Korisnici.vue"),
         meta: { requiresAuth: true },
       },

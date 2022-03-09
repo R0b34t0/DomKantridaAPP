@@ -113,13 +113,6 @@ export default defineComponent({
 
     const columnsKasnjenje = [
       {
-        name: "id",
-        label: "ID",
-        align: "center",
-        field: "id",
-        sortable: false,
-      },
-      {
         name: "vrijemePrijave",
         label: "Vrijeme prijave",
         align: "center",

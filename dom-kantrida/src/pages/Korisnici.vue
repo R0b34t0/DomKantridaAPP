@@ -128,14 +128,6 @@ export default defineComponent({
 
     const columns = [
       {
-        name: "id",
-        label: "ID",
-        align: "center",
-        field: "id",
-        sortable: false,
-        style: "max-width: 200px",
-      },
-      {
         name: "ime",
         label: "Ime",
         align: "center",

@@ -57,9 +57,7 @@ import { reactive } from "@vue/reactivity";
 import useVuelidate from "@vuelidate/core";
 import { required, helpers } from "@vuelidate/validators";
 import { addDoc, collection } from "@firebase/firestore";
-import { db, auth } from "src/boot/firebase";
-import { onMounted } from "@vue/runtime-core";
-import { onAuthStateChanged } from "@firebase/auth";
+import { db, auth, user } from "src/boot/firebase";
 
 export default {
   props: ["prijavaKasnjenja", "kasnjenjeCompleted", "uid"],
@@ -68,7 +66,6 @@ export default {
       maximizedToggle: true,
       lokacija: "",
       razlogKasnjenja: "",
-      user: "",
     });
     const rules = {
       lokacija: {
@@ -86,12 +83,13 @@ export default {
 
     const onSubmit = async (v$) => {
       const formIsValid = await v$.$validate();
+      // const user = await user();
       if (formIsValid) {
         await addDoc(collection(db, "Kasnjenja"), {
           lokacija: state.lokacija,
           razlogKasnjenja: state.razlogKasnjenja,
           datumPrijave: new Date(),
-          vozac: state.user.uid,
+          vozac: props.uid,
         });
         handleClose(v$);
       }
@@ -103,18 +101,6 @@ export default {
       v$.$reset();
     };
 
-    const checkAuthState = () => {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          state.user = user;
-        } else {
-          router.push("/login");
-        }
-      });
-    };
-    onMounted(() => {
-      checkAuthState();
-    });
     return { state, props, v$, onSubmit, handleClose };
   },
 };

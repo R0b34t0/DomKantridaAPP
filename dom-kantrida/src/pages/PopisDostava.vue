@@ -15,7 +15,11 @@
       ><br />
       Opis: {{ kasnjenje.razlogKasnjenja }}
     </q-banner>
+    <div class="fixed-center text-h6" v-if="state.dostave.length === 0">
+      Nema dostava...
+    </div>
     <q-scroll-area
+      v-if="state.dostave.length > 0"
       style="height: calc(100vh - 50px); width: 100vw; padding-bottom: 50px"
     >
       <CardDostava
@@ -53,13 +57,13 @@
     <PrijavaKasnjenja
       :prijavaKasnjenja="state.prijavaKasnjenja"
       :kasnjenjeCompleted="kasnjenjeCompleted"
-      :uid="user && user.uid"
+      :uid="state.user && state.user.uid"
     />
   </q-page>
 </template>
 <script>
-import { onMounted, onUnmounted, reactive, watch } from "vue";
-import { db, auth } from "src/boot/firebase";
+import { onMounted, onUnmounted, reactive } from "vue";
+import { db, user } from "src/boot/firebase";
 import {
   collection,
   query,
@@ -73,7 +77,7 @@ import { formatDateDisplay } from "../utils/formatDate";
 
 import CardDostava from "../components/CardDostava.vue";
 import PrijavaKasnjenja from "../components/PrijavaKasnjenja.vue";
-import { onAuthStateChanged } from "@firebase/auth";
+import { useRouter } from "vue-router";
 
 export default {
   name: "PrikazDostava",
@@ -95,7 +99,7 @@ export default {
 
     let unsub;
     let unsub1;
-
+    const router = useRouter();
     //query za dostave na odabrani datum
     const getData = async () => {
       const q = query(
@@ -221,16 +225,15 @@ export default {
       });
     };
 
-    const checkAuthState = () => {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          state.user = user;
-          getData();
-          getDataKasnjenja();
-        } else {
-          router.push("/login");
-        }
-      });
+    const checkAuthState = async () => {
+      let currentUser = await user();
+      if (currentUser) {
+        state.user = currentUser;
+        getData();
+        getDataKasnjenja();
+      } else {
+        router.push("/login");
+      }
     };
 
     onMounted(() => {

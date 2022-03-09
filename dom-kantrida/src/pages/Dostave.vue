@@ -333,13 +333,6 @@ export default {
     // stupci
     const columns = [
       {
-        name: "id",
-        label: "ID",
-        align: "center",
-        field: "id",
-        sortable: false,
-      },
-      {
         name: "datumDostave",
         label: "Datum",
         align: "center",

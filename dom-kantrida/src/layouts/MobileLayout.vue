@@ -9,15 +9,7 @@
           Dom Kantrida
         </q-toolbar-title>
         <div v-if="state.user">
-          <q-avatar
-            v-if="state.collectionUser"
-            color="orange"
-            text-color="white"
-            >{{
-              state.collectionUser.ime.charAt(0).toUpperCase() +
-              state.collectionUser.prezime.charAt(0).toUpperCase()
-            }}</q-avatar
-          >
+          <q-btn flat icon="logout" @click="logout" />
         </div>
       </q-toolbar>
     </q-header>
@@ -31,14 +23,14 @@
 <script>
 import { ref, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { signOut, onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "../boot/firebase";
+import { signOut } from "firebase/auth";
+import { auth, db, user } from "../boot/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 export default {
   setup() {
     const state = reactive({
-      user: null,
+      user: {},
       collectionUser: null,
     });
     const router = useRouter();
@@ -64,15 +56,14 @@ export default {
         router.push("/login");
       }
     };
+
     const checkAuthState = async () => {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          state.user = user;
-          getUserData(user.uid);
-        } else {
-          router.push("/login");
-        }
-      });
+      state.user = await user();
+      if (state.user) {
+        getUserData(state.user.uid);
+      } else {
+        router.push("/login");
+      }
     };
 
     onMounted(() => {

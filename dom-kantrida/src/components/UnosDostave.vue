@@ -443,7 +443,15 @@ export default {
     inace se dodaje vise dostava odjednom - u oba slucaja forma se submita samo ako prodje validaciju */
     const onSubmit = async (v$) => {
       if (state.mode === "auto") {
-        if (Object.keys(state.izabraniVozaci).length < state.klijenti.length) {
+        const keys = Object.keys(state.izabraniVozaci);
+        const valid = state.autoGeneriraneDostave.find((dostava) => {
+          if (keys.includes(dostava.id_klijenta)) {
+            return true;
+          } else {
+            return false;
+          }
+        });
+        if (!valid) {
           state.invalidForm = true;
         } else {
           let batch = writeBatch(db);
@@ -607,8 +615,6 @@ export default {
       const index = state.autoGeneriraneDostave.indexOf(zaDelete);
       state.autoGeneriraneDostave.splice(index, 1);
       delete state.izabraniVozaci[zaDelete.id_klijenta];
-      const indexKlijenta = state.klijenti.indexOf(zaDelete.id_klijenta);
-      state.klijenti.splice(indexKlijenta, 1);
     };
 
     const columns = [

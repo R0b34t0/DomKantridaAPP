@@ -357,7 +357,8 @@ export default {
       state.loading = true;
       const q = query(
         collection(db, "Korisnici"),
-        where("rola", "==", "VOZAC")
+        where("rola", "==", "VOZAC"),
+        where("deleted", "==", false)
       );
       const querySnapshot = await getDocs(q);
       state.vozaci = [];

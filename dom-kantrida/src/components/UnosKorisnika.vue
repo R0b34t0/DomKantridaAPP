@@ -93,9 +93,16 @@
               outlined
               v-model="state.password"
               label="Lozinka"
-              type="password"
+              :type="state.isPwd ? 'password' : 'text'"
               :error="v$.password.$dirty && state.password"
-            />
+              ><template v-slot:append>
+                <q-icon
+                  :name="state.isPwd ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  @click="state.isPwd = !state.isPwd"
+                />
+              </template>
+            </q-input>
 
             <div class="error" v-if="v$.password.$error">
               {{ v$.password.$errors[0].$message }}
@@ -158,6 +165,7 @@ export default {
       password: "",
       loading: false,
       uid: null,
+      isPwd: true,
     });
 
     watch(

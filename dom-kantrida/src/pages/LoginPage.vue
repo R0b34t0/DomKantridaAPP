@@ -43,7 +43,7 @@
             color="blue"
             size="lg"
             class="full-width"
-            label="Login"
+            label="Prijava"
           />
         </q-card-actions>
         <q-card-section class="text-center q-pa-none">

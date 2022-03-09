@@ -95,8 +95,13 @@
                 class="q-my-none q-ml-xs q-mr-none"
               >
                 {{ state.vozacEdit.ime }}
-              </q-chip>
-            </template>
+              </q-chip> </template
+            ><q-btn
+              v-if="state.activeEdit && vozac.key === state.selectedRowKey"
+              flat
+              icon="close"
+              @click="toggleEdit(vozac)"
+            />
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
                 <q-item-section>
@@ -170,7 +175,8 @@ export default {
       state.vozaci = [];
       const q = query(
         collection(db, "Korisnici"),
-        where("rola", "==", "VOZAC")
+        where("rola", "==", "VOZAC"),
+        where("deleted", "==", false)
       );
       const querySnapshot = await getDocs(q);
 

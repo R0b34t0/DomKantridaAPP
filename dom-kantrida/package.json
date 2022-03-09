@@ -1,8 +1,8 @@
 {
   "name": "dom-kantrida",
   "version": "0.0.1",
-  "description": "A Quasar Framework app",
-  "productName": "Quasar App",
+  "description": "Aplikacija za pracenje dostava.",
+  "productName": "Dom Kantrida",
   "author": "kvukovic4 <katarina.vukovic3@gmail.com>",
   "private": true,
   "scripts": {

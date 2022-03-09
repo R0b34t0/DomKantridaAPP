@@ -218,6 +218,7 @@ export default {
             vozac: vozac ? vozac : "Nema podatka",
             brojTelefona: vozac ? vozac.brojTelefona : "Nema podatka",
           };
+
           state.dostave.push(dostava);
         });
         state.loading = false;
@@ -331,13 +332,6 @@ export default {
 
     // stupci
     const columns = [
-      {
-        name: "id",
-        label: "ID",
-        align: "center",
-        field: "id",
-        sortable: false,
-      },
       {
         name: "datumDostave",
         label: "Datum",

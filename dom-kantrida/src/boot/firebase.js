@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.API_KEY,
@@ -15,4 +15,17 @@ let firebaseApp = initializeApp(firebaseConfig);
 let db = getFirestore(firebaseApp);
 let auth = getAuth(firebaseApp);
 
-export { firebaseApp, db, auth, firebaseConfig };
+const user = () => {
+  return new Promise((resolve, reject) => {
+    const unsub = onAuthStateChanged(
+      auth,
+      (userFirebase) => {
+        unsub();
+        resolve(userFirebase);
+      },
+      reject
+    );
+  });
+};
+
+export { firebaseApp, db, auth, firebaseConfig, user };

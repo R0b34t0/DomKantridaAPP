@@ -315,19 +315,7 @@ import {
 } from "firebase/firestore";
 import useVuelidate from "@vuelidate/core";
 import { required, helpers } from "@vuelidate/validators";
-/*=
-TODO: KORISNICI
-3. dodat mogucnost promjene lozinke za korisnike
-4. mogucnost ispisa podataka o korisniku
-TODO: ALL
-1. dodaj blokiranje ruta
-2. dodaj grafikone na nadzornu plocu i mogucnost pregleda prijavljenih kasnjenja za odredjeni dan i popisa sa zadnjom dostavljenom dostavom po vozacu i vremenom dostave
-TODO: MOBILNA APLIKACIJA
-1. pregled dostava prema prijavljenom vozacu - istok/zapad
-2. responsive design - pwa
-3. mogucnost potvrde dostave ili oznacavanja sa 'nije dostavljeno'
-4. mogucnost prijave kasnjenja u svakom trenutku
-*/
+
 export default {
   name: "UnosDostave",
   props: ["dostave", "izabraniDatum", "disableBtn", "brojDostava"],
@@ -455,7 +443,15 @@ export default {
     inace se dodaje vise dostava odjednom - u oba slucaja forma se submita samo ako prodje validaciju */
     const onSubmit = async (v$) => {
       if (state.mode === "auto") {
-        if (Object.keys(state.izabraniVozaci).length < state.klijenti.length) {
+        const keys = Object.keys(state.izabraniVozaci);
+        const valid = state.autoGeneriraneDostave.find((dostava) => {
+          if (keys.includes(dostava.id_klijenta)) {
+            return true;
+          } else {
+            return false;
+          }
+        });
+        if (!valid) {
           state.invalidForm = true;
         } else {
           let batch = writeBatch(db);
@@ -619,8 +615,6 @@ export default {
       const index = state.autoGeneriraneDostave.indexOf(zaDelete);
       state.autoGeneriraneDostave.splice(index, 1);
       delete state.izabraniVozaci[zaDelete.id_klijenta];
-      const indexKlijenta = state.klijenti.indexOf(zaDelete.id_klijenta);
-      state.klijenti.splice(indexKlijenta, 1);
     };
 
     const columns = [

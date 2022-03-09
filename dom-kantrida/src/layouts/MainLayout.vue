@@ -17,8 +17,8 @@
             color="orange"
             text-color="white"
             >{{
-              state.collectionUser.ime.charAt(0) +
-              state.collectionUser.prezime.charAt(0)
+              state.collectionUser.ime.charAt(0).toUpperCase() +
+              state.collectionUser.prezime.charAt(0).toUpperCase()
             }}</q-avatar
           >
         </div>
@@ -27,7 +27,7 @@
 
     <q-drawer show-if-above v-model="leftDrawerOpen" side="left" bordered>
       <q-list padding class="menu-list">
-        <q-item clickable v-ripple to="/">
+        <q-item clickable v-ripple to="/" exact>
           <q-item-section avatar>
             <q-icon name="dashboard" />
           </q-item-section>
@@ -83,14 +83,14 @@
 <script>
 import { ref, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { signOut, onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "../boot/firebase";
+import { signOut } from "firebase/auth";
+import { auth, db, user } from "../boot/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 export default {
   setup() {
     const state = reactive({
-      user: null,
+      user: {},
       collectionUser: null,
     });
     const router = useRouter();
@@ -116,16 +116,13 @@ export default {
         router.push("/login");
       }
     };
-    //we can use this data to later hide routes for admin/vozac
     const checkAuthState = async () => {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          state.user = user;
-          getUserData(user.uid);
-        } else {
-          router.push("/login");
-        }
-      });
+      state.user = await user();
+      if (state.user) {
+        getUserData(state.user.uid);
+      } else {
+        router.push("/login");
+      }
     };
 
     onMounted(() => {

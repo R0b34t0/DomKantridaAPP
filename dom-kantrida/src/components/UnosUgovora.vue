@@ -78,7 +78,7 @@
           </q-card-section>
           <q-card-actions align="right" class="text-primary">
             <q-btn flat label="Odustani" @click="handleClose(v$)" />
-            <!-- @click="dodajUgovor(v$)" -->
+
             <q-btn
               type="submit"
               color="primary"
@@ -134,7 +134,6 @@ export default {
 
       options: [],
       greskaUnosa: false,
-      // greskaunosa je bilo true
       provjeriDatumRuleUkljucivanje: [
         (vrijednost) =>
           this.provjeriDatumUkljucivanja() ||
@@ -294,10 +293,6 @@ export default {
 
           const dbRef = doc(db, "Ugovori", state.id_ugovora);
           updateDoc(dbRef, {
-            //   state.vrstaPrehrane = ""),
-            // (state.zaduzeniRuckovi = ""),
-            // (state.datumUkljucivanja = ""),
-            // (state.datumZavrsetkaTretmana = "");
             vrstaPrehrane: state.vrstaPrehrane,
             zaduzeniRuckovi: zaduzeniRuckoviArray,
             datumUkljucivanja: pretvoriDatum(state.datumUkljucivanja),
@@ -375,7 +370,6 @@ export default {
         this.greskaUnosa = true;
         return false;
       }
-      //   } else return this.datumZavrsetkaTretmana >= trenutniDatum;
     },
     filterFn(val, update, abort) {
       // call abort() at any time if you can't retrieve data somehow
@@ -391,9 +385,6 @@ export default {
           );
         });
       }, 500);
-    },
-    async dodajUgovor(v$) {
-      // brisi
     },
   },
   mounted() {

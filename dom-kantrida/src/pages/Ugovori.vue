@@ -15,7 +15,6 @@
       row-key="id"
       no-data-label="U bazi ne postoji popis korisnika"
     >
-      <!-- zasto se ne prikazuje??? -->
       <template v-slot:body-cell-actions="actions">
         <q-td :props="actions">
           <div>
